@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="api">
+      <UniqueIdentifier>{78817a87-a302-4fee-bf7f-13a2adb1d233}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{9667101d-bc31-4591-8e84-c01cb3b5155c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="aes">
+      <UniqueIdentifier>{de17d0e2-c4b8-4844-a7c4-e9108fec8095}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sha">
+      <UniqueIdentifier>{584e1b98-3ecf-4b2b-a93d-40d10354a16f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="aes\src">
+      <UniqueIdentifier>{83987973-250a-4b6e-8d06-914c18582dc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test">
+      <UniqueIdentifier>{7f8c1a12-d7c2-47ec-a36b-a8d9a1eebef8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="aes\header">
+      <UniqueIdentifier>{3f19b267-7953-48a5-971a-2b53a2f75453}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sha\src">
+      <UniqueIdentifier>{e4f590de-b967-4608-a9ed-bf32488bf27f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sha\header">
+      <UniqueIdentifier>{3cc317d5-61dc-45a6-b72e-f8737afae480}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aes\header\aes.h">
+      <Filter>aes\header</Filter>
+    </ClInclude>
+    <ClInclude Include="aes\header\aes_ctr.h">
+      <Filter>aes\header</Filter>
+    </ClInclude>
+    <ClInclude Include="include\api.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\foundation.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\error.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="test\print.h">
+      <Filter>test</Filter>
+    </ClInclude>
+    <ClInclude Include="sha\header\sha.h">
+      <Filter>sha\header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="aes\sorce\aes.c">
+      <Filter>aes\src</Filter>
+    </ClCompile>
+    <ClCompile Include="aes\sorce\aes_ctr.c">
+      <Filter>aes\src</Filter>
+    </ClCompile>
+    <ClCompile Include="api\aes_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\sha_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="test\sha_test.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\aes_test.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\print.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="sha\sorce\sha.c">
+      <Filter>sha\src</Filter>
+    </ClCompile>
+    <ClCompile Include="api\file_crypto_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
