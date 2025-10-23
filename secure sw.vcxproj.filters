@@ -80,5 +80,8 @@
     <ClCompile Include="api\file_crypto_api.c">
       <Filter>api</Filter>
     </ClCompile>
+    <ClCompile Include="include\error.c">
+      <Filter>include</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
