@@ -1,4 +1,2 @@
-﻿  aes.c
-\aes.c(1,1): error C1083: 소스 파일을 열 수 없습니다. 'aes.c': No such file or directory
-  (소스 파일 '/aes.c'을(를) 컴파일하는 중)
-  
+﻿  aes_test.c
+  secure sw.vcxproj -> C:\Users\bryan\Desktop\o\school\2_2\secure sw\secure sw\x64\Debug\secure sw.exe

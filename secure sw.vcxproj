@@ -141,6 +141,7 @@
     <ClCompile Include="api\aes_api.c" />
     <ClCompile Include="api\file_crypto_api.c" />
     <ClCompile Include="api\sha_api.c" />
+    <ClCompile Include="include\error.c" />
     <ClCompile Include="sha\sorce\sha.c" />
     <ClCompile Include="test\print.c" />
     <ClCompile Include="test\sha_test.c" />

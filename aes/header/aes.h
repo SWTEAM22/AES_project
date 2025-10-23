@@ -21,7 +21,7 @@ ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2
 ERR_MSG sub_word(uint32_t* word);
 ERR_MSG rot_word(uint8_t* word);
 
-ERR_MSG key_expansion(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len);
+static ERR_MSG key_expansion(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len);
 
 
 
@@ -33,7 +33,7 @@ ERR_MSG shift_rows(uint8_t state[4][4]);
 ERR_MSG mix_columns(uint8_t state[4][4]);
 ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key);
 
-static ERR_MSG aes_encrypt(
+ERR_MSG aes_encrypt(
 	OUT uint8_t* ct,
 	IN const AES_KEY* key,
 	IN const uint8_t* pt);
@@ -45,7 +45,7 @@ ERR_MSG inv_shift_rows(uint8_t state[4][4]);
 ERR_MSG inv_mix_columns(uint8_t state[4][4]);
 // add_round_key 함수는 암호화와 동일
 
-static ERR_MSG aes_decrypt(
+ERR_MSG aes_decrypt(
 	OUT uint8_t* pt,
 	IN const AES_KEY* key,
 	IN const uint8_t* ct);
