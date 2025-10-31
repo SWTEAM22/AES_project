@@ -5,7 +5,7 @@
 
 
 
-/* ---------------------------------------  STandard  S-Box  ------------------------------------------*/
+/* ---------------------------------------  Standard  S-Box  ------------------------------------------*/
 
 
 static const uint8_t AES_SBOX[256] = {
@@ -27,7 +27,53 @@ static const uint8_t AES_SBOX[256] = {
   0x8C,0xA1,0x89,0x0D,0xBF,0xE6,0x42,0x68,0x41,0x99,0x2D,0x0F,0xB0,0x54,0xBB,0x16
 };
 
-/*-----------------------------------------    SubBytes 함수   ----------------------------------------- */
+
+
+
+/*----------------------------------- GF128 상에서 곱셈 연산 -------------------------------------------*/
+
+ERR_MSG xtimes(uint8_t* dat) {
+	return SUCCESS;
+}
+ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2) {
+	return SUCCESS;
+}
+
+/*--------------------------------- 키확장 및 키확장 내부함수 ----------------------------------------*/
+
+ERR_MSG sub_word(uint32_t* word) {
+    if (!word) return ERR_API_INVALID_ARG;
+    uint32_t w = *word;
+    uint8_t b0 = (uint8_t)(w >> 24);
+    uint8_t b1 = (uint8_t)(w >> 16);
+    uint8_t b2 = (uint8_t)(w >> 8);
+    uint8_t b3 = (uint8_t)(w);
+
+    b0 = AES_SBOX[b0];
+    b1 = AES_SBOX[b1];
+    b2 = AES_SBOX[b2];
+    b3 = AES_SBOX[b3];
+
+    *word = ((uint32_t)b0 << 24) | ((uint32_t)b1 << 16) | ((uint32_t)b2 << 8) | (uint32_t)b3;
+    return SUCCESS;
+}
+
+ERR_MSG rot_word(uint8_t* word) {
+    if (!word) return ERR_API_INVALID_ARG;
+    uint8_t t = word[0];
+    word[0] = word[1];
+    word[1] = word[2];
+    word[2] = word[3];
+    word[3] = t;
+    return SUCCESS;
+}
+
+ERR_MSG key_expansion(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len) {
+	return SUCCESS;
+}
+
+/*------------------------------ AES 암호화 및 암호화 내부함수 ------------------------------------------*/
+
 ERR_MSG sub_bytes(uint8_t state[4][4]) {
     if (!state) return ERR_API_INVALID_ARG;
     for (int r = 0; r < 4; ++r)
@@ -36,7 +82,6 @@ ERR_MSG sub_bytes(uint8_t state[4][4]) {
     return SUCCESS;
 }
 
-/* -----------------------------------------    ShiftRows 함수   --------------------------------------*/
 ERR_MSG shift_rows(uint8_t state[4][4]) {
     if (!state) return ERR_API_INVALID_ARG;
 
@@ -66,92 +111,23 @@ ERR_MSG shift_rows(uint8_t state[4][4]) {
     return SUCCESS;
 }
 
-/*--------------------------------------------   AddRoundKey  -------------------------------------------- */
+ERR_MSG mix_columns(uint8_t state[4][4]) {
+	return SUCCESS;
+}
 
 
-ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key) {
+ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key, size_t round) {
+
+
     if (!state || !key) return ERR_API_INVALID_ARG;
     for (int c = 0; c < 4; ++c) {
-        uint32_t w = key->rd_key[c];
+        uint32_t w = key->rd_key[4 * round + c];
         state[0][c] ^= (uint8_t)(w >> 24);
         state[1][c] ^= (uint8_t)(w >> 16);
         state[2][c] ^= (uint8_t)(w >> 8);
         state[3][c] ^= (uint8_t)(w);
     }
     return SUCCESS;
-}
-
-/*--------------------------------------------    SubWord   ---------------------------------------------- */
-
-
-ERR_MSG sub_word(uint32_t* word) {
-    if (!word) return ERR_API_INVALID_ARG;
-    uint32_t w = *word;
-    uint8_t b0 = (uint8_t)(w >> 24);
-    uint8_t b1 = (uint8_t)(w >> 16);
-    uint8_t b2 = (uint8_t)(w >> 8);
-    uint8_t b3 = (uint8_t)(w);
-
-    b0 = AES_SBOX[b0];
-    b1 = AES_SBOX[b1];
-    b2 = AES_SBOX[b2];
-    b3 = AES_SBOX[b3];
-
-    *word = ((uint32_t)b0 << 24) | ((uint32_t)b1 << 16) | ((uint32_t)b2 << 8) | (uint32_t)b3;
-    return SUCCESS;
-}
-
-/*---------------------------------------------  RotWord  ----------------------------------------------- */
-ERR_MSG rot_word(uint8_t* word) {
-    if (!word) return ERR_API_INVALID_ARG;
-    uint8_t t = word[0];
-    word[0] = word[1];
-    word[1] = word[2];
-    word[2] = word[3];
-    word[3] = t;
-    return SUCCESS;
-}
-
-
-/*----------------------------------- GF128 상에서 곱셈 연산 -------------------------------------------*/
-
-ERR_MSG xtimes(uint8_t* dat) {
-	return SUCCESS;
-}
-ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2) {
-	return SUCCESS;
-}
-
-/*--------------------------------- 키확장 및 키확장 내부함수 ----------------------------------------*/
-
-ERR_MSG sub_word(uint32_t* word) {
-	return SUCCESS;
-}
-
-ERR_MSG rot_word(uint8_t* word) {
-	return SUCCESS;
-}
-
-ERR_MSG key_expansion(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len) {
-	return SUCCESS;
-}
-
-/*------------------------------ AES 암호화 및 암호화 내부함수 ------------------------------------------*/
-
-ERR_MSG sub_bytes(uint8_t state[4][4]) {
-	return SUCCESS;
-}
-
-ERR_MSG shift_rows(uint8_t state[4][4]) {
-	return SUCCESS;
-}
-
-ERR_MSG mix_columns(uint8_t state[4][4]) {
-	return SUCCESS;
-}
-
-ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key) {
-	return SUCCESS;
 }
 
 ERR_MSG aes_encrypt(
