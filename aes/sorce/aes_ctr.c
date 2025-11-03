@@ -1,4 +1,4 @@
-#include "../include/foundation.h"
+﻿#include "../include/foundation.h"
 #include "../include/error.h"
 #include "./header/aes_ctr.h"
 
@@ -27,7 +27,7 @@
  * ========================================================================================= */
 ERR_MSG increment_counter(uint8_t* counter) {
     if (counter == NULL) {
-        return ERROR_INVALID_ARGUMENT;
+        return ERR_AES_CTR_INVALID_ARG;
     }
 
     // 128-bit big-endian increment (AES block = 16 bytes)
@@ -74,7 +74,7 @@ static ERR_MSG aes_ctr_crypto(
 {
     // 인자 유효성 검사
     if (ct == NULL || key == NULL || pt == NULL || iv == NULL) {
-        return ERROR_INVALID_ARGUMENT;
+        return ERR_AES_CTR_INVALID_ARG;
     }
     if (data_len == 0) {
         return SUCCESS; // 처리할 데이터가 없음

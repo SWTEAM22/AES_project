@@ -51,6 +51,7 @@
     <ClInclude Include="sha\header\sha.h">
       <Filter>sha\header</Filter>
     </ClInclude>
+    <ClInclude Include="sha\header\sha_.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aes\sorce\aes.c">
@@ -83,5 +84,6 @@
     <ClCompile Include="include\error.c">
       <Filter>include</Filter>
     </ClCompile>
+    <ClCompile Include="sha\sorce\sha_.c" />
   </ItemGroup>
 </Project>
