@@ -8,7 +8,7 @@
 
 ERR_MSG increment_counter(uint8_t* counter);		// 카운터 증가 함수
 
-static ERR_MSG aes_ctr_crypto(
+ERR_MSG aes_ctr_crypto_inline(
 	OUT uint8_t* ct,
 	IN const AES_KEY* key,
 	IN const uint8_t* pt,

@@ -65,7 +65,7 @@ ERR_MSG increment_counter(uint8_t* counter) {
  *   - CTR은 암호화와 복호화 과정이 동일하다.
  *   - IV(counter)는 입력에 따라 변하지 않도록 내부 복사본 사용.
  * ========================================================================================= */
-static ERR_MSG aes_ctr_crypto(
+ERR_MSG aes_ctr_crypto_inline(
     OUT uint8_t* ct,
     IN  const AES_KEY* key,
     IN  const uint8_t* pt,
