@@ -133,7 +133,6 @@
     <ClInclude Include="include\error.h" />
     <ClInclude Include="include\foundation.h" />
     <ClInclude Include="sha\header\sha.h" />
-    <ClInclude Include="sha\header\sha_.h" />
     <ClInclude Include="test\print.h" />
   </ItemGroup>
   <ItemGroup>
@@ -144,7 +143,6 @@
     <ClCompile Include="api\sha_api.c" />
     <ClCompile Include="include\error.c" />
     <ClCompile Include="sha\sorce\sha.c" />
-    <ClCompile Include="sha\sorce\sha_.c" />
     <ClCompile Include="test\print.c" />
     <ClCompile Include="test\sha_test.c" />
     <ClCompile Include="test\aes_test.c" />
