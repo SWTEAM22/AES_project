@@ -8,7 +8,7 @@ ERR_MSG key_expansion(
 	OUT AES_KEY* key,
 	IN const uint8_t* master_key,
 	IN size_t key_len) {
-	key_expansion(key, master_key, key_len);
+	key_expansion_inline(key, master_key, key_len);
 	return SUCCESS;
 }
 
@@ -36,6 +36,6 @@ ERR_MSG aes_ctr_crypto(
 	IN const uint8_t* pt,
 	IN size_t data_len,
 	IN const uint8_t* iv) {
-	aes_ctr_crypto(ct, key, pt, data_len, iv);
+	aes_ctr_crypto_inline(ct, key, pt, data_len, iv);
 	return SUCCESS;
 }

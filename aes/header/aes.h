@@ -21,7 +21,7 @@ ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2
 ERR_MSG sub_word(uint32_t* word);
 ERR_MSG rot_word(uint8_t* word);
 
-static ERR_MSG key_expansion(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len);
+ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len);
 
 
 
