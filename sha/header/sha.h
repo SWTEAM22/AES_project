@@ -5,6 +5,14 @@
 #include "../include/error.h"
 #include "../include/api.h"
 
+// SHA-512 공통 처리 함수
+ERR_MSG sha512_process(
+    OUT uint8_t* digest,
+    IN  const uint8_t* data,
+    IN  size_t data_len,
+    IN  const uint64_t* initial_hash,
+    IN  size_t output_len);
+
 // 각 해시 함수별 API
 ERR_MSG sha224_hash(
     OUT uint8_t* digest /*28*/,
