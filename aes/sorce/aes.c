@@ -53,12 +53,12 @@ static const uint8_t AES_INV_SBOX[256] = {
 /*----------------------------------- GF128 상에서 곱셈 연산 -------------------------------------------*/
 
 ERR_MSG xtimes(uint8_t* dat) {
-    if (!dat) return ERR_API_INVALID_ARG; 
+    if (dat == NULL) return ERR_API_INVALID_ARG; 
     *dat = (uint8_t)((*dat << 1) ^ ((*dat & 0x80) ? 0x1B : 0x00));
 	return SUCCESS;
 }
 ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2) {
-    if (!dst || !src1 || !src2) return ERR_API_INVALID_ARG;
+    if (dst == NULL || src1 == NULL || src2 == NULL) return ERR_API_INVALID_ARG;
     uint8_t a = src1[0], b = src2[0], res = 0;
     uint8_t temp;
     for (int i = 0; i < 8; ++i) {
@@ -76,7 +76,7 @@ ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2
 /*--------------------------------- 키확장 및 키확장 내부함수 ----------------------------------------*/
 
 ERR_MSG sub_word(uint32_t* word) {
-    if (!word) return ERR_API_INVALID_ARG;
+    if (word == NULL) return ERR_API_INVALID_ARG;
     uint32_t w = *word;
     uint8_t b0 = (uint8_t)(w >> 24);
     uint8_t b1 = (uint8_t)(w >> 16);
@@ -93,7 +93,7 @@ ERR_MSG sub_word(uint32_t* word) {
 }
 
 ERR_MSG rot_word(uint8_t* word) {
-    if (!word) return ERR_API_INVALID_ARG;
+    if (word == NULL) return ERR_API_INVALID_ARG;
     uint8_t t = word[0];
     word[0] = word[1];
     word[1] = word[2];
@@ -103,7 +103,7 @@ ERR_MSG rot_word(uint8_t* word) {
 }
 
 ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len) {
-    if (!key || !master_key) return ERR_API_INVALID_ARG;
+    if (key == NULL || master_key == NULL) return ERR_API_INVALID_ARG;
     
     // 키 길이 검증 및 라운드 수 설정
     size_t nk, nr;
@@ -172,7 +172,7 @@ ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN 
 /*------------------------------ AES 암호화 및 암호화 내부함수 ------------------------------------------*/
 
 ERR_MSG sub_bytes(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
     for (int r = 0; r < 4; ++r)
         for (int c = 0; c < 4; ++c)
             state[r][c] = AES_SBOX[state[r][c]];
@@ -180,7 +180,7 @@ ERR_MSG sub_bytes(uint8_t state[4][4]) {
 }
 
 ERR_MSG shift_rows(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
 
     uint8_t t, t0, t1;
 
@@ -209,7 +209,7 @@ ERR_MSG shift_rows(uint8_t state[4][4]) {
 }
 
 ERR_MSG mix_columns(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
 
     const uint8_t M[4][4] = {   
         {0x02, 0x03, 0x01, 0x01},
@@ -241,9 +241,7 @@ ERR_MSG mix_columns(uint8_t state[4][4]) {
 
 
 ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key, size_t round) {
-
-
-    if (!state || !key) return ERR_API_INVALID_ARG;
+    if (state == NULL || key == NULL) return ERR_API_INVALID_ARG;
     for (int c = 0; c < 4; ++c) {
         uint32_t w = key->rd_key[4 * round + c];
         state[0][c] ^= (uint8_t)(w >> 24);
@@ -258,8 +256,7 @@ ERR_MSG aes_encrypt(
 	OUT uint8_t* ct,
 	IN const AES_KEY* key,
 	IN const uint8_t* pt) {
-
-    if (!ct || !key || !pt) return ERR_API_INVALID_ARG;
+    if (ct == NULL || key == NULL || pt == NULL) return ERR_API_INVALID_ARG;
     
     // 키 라운드 수 유효성 검사
     if (key->rounds == 0 || key->rounds > MAX_ROUNDS) {
@@ -307,14 +304,14 @@ ERR_MSG aes_encrypt(
 /*------------------------------ AES 복호화 및 복호화 내부함수 ------------------------------------------*/
 
 ERR_MSG inv_sub_bytes(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
     for (int r = 0; r < 4; ++r)
         for (int c = 0; c < 4; ++c)
             state[r][c] = AES_INV_SBOX[state[r][c]];
 	return SUCCESS;
 }
 ERR_MSG inv_shift_rows(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
     
     uint8_t t, t0, t1;
     
@@ -345,7 +342,7 @@ ERR_MSG inv_shift_rows(uint8_t state[4][4]) {
 	return SUCCESS;
 }
 ERR_MSG inv_mix_columns(uint8_t state[4][4]) {
-    if (!state) return ERR_API_INVALID_ARG;
+    if (state == NULL) return ERR_API_INVALID_ARG;
 
     const uint8_t M[4][4] = {   // 역행렬 계수
         {0x0e, 0x0b, 0x0d, 0x09},
@@ -378,8 +375,7 @@ ERR_MSG aes_decrypt(
 	OUT uint8_t* pt,
 	IN const AES_KEY* key,
 	IN const uint8_t* ct) {
-
-    if (!pt || !key || !ct) return ERR_API_INVALID_ARG;
+    if (pt == NULL || key == NULL || ct == NULL) return ERR_API_INVALID_ARG;
     
     // 키 라운드 수 유효성 검사
     if (key->rounds == 0 || key->rounds > MAX_ROUNDS) {

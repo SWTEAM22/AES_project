@@ -31,7 +31,7 @@ ERR_MSG increment_counter(uint8_t* counter) {
     }
 
     // 128-bit big-endian increment (AES block = 16 bytes)
-    for (int i = 16 - 1; i >= 0; --i) {
+    for (int i = AES_BLOCK_SIZE - 1; i >= 0; --i) {
         counter[i] += 1u;
         if (counter[i] != 0u) {
             break;  // carry stop → 더 이상 상위 바이트로 전파 안 함
@@ -76,15 +76,18 @@ ERR_MSG aes_ctr_crypto_inline(
     if (ct == NULL || key == NULL || pt == NULL || iv == NULL) {
         return ERR_AES_CTR_INVALID_ARG;
     }
+    // IV 길이 검증 (AES 블록 크기 = 16바이트)
+    // 참고: iv_len 파라미터가 없으므로 함수 시그니처를 변경하거나
+    // 호출자가 16바이트를 보장해야 함. 여기서는 암묵적으로 16바이트로 가정
     if (data_len == 0) {
         return SUCCESS; // 처리할 데이터가 없음
     }
 
-    uint8_t counter[16];   // 현재 블록용 카운터(IV 복사본)
-    uint8_t keystream[16]; // AES로 생성된 키스트림
+    uint8_t counter[AES_BLOCK_SIZE];   // 현재 블록용 카운터(IV 복사본)
+    uint8_t keystream[AES_BLOCK_SIZE]; // AES로 생성된 키스트림
 
     // counter <- iv (원본 IV 변경 방지)
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < AES_BLOCK_SIZE; ++i) {
         counter[i] = iv[i];
     }
 
@@ -93,21 +96,29 @@ ERR_MSG aes_ctr_crypto_inline(
     /********************************************
      * [1] 전체 블록 단위 처리 (16바이트씩)
      ********************************************/
-    while (data_len - off >= 16) {
+    while (data_len - off >= AES_BLOCK_SIZE) {
         // ① keystream 생성: AES_Encrypt(counter)
         ERR_MSG err = aes_encrypt(keystream, key, counter);
-        if (err != SUCCESS) return err;
+        if (err != SUCCESS) {
+            memset(counter, 0, sizeof(counter));
+            memset(keystream, 0, sizeof(keystream));
+            return err;
+        }
 
         // ② XOR: 평문 블록과 keystream 결합 → 암호문 블록
-        for (int i = 0; i < 16; ++i) {
+        for (int i = 0; i < AES_BLOCK_SIZE; ++i) {
             ct[off + i] = pt[off + i] ^ keystream[i];
         }
 
         // ③ counter++
         err = increment_counter(counter);
-        if (err != SUCCESS) return err;
+        if (err != SUCCESS) {
+            memset(counter, 0, sizeof(counter));
+            memset(keystream, 0, sizeof(keystream));
+            return err;
+        }
 
-        off += 16; // 다음 블록으로 이동
+        off += AES_BLOCK_SIZE; // 다음 블록으로 이동
     }
 
     /********************************************
@@ -117,13 +128,21 @@ ERR_MSG aes_ctr_crypto_inline(
     if (rem > 0) {
         // 마지막 키스트림 한 번 더 생성
         ERR_MSG err = aes_encrypt(keystream, key, counter);
-        if (err != SUCCESS) return err;
+        if (err != SUCCESS) {
+            memset(counter, 0, sizeof(counter));
+            memset(keystream, 0, sizeof(keystream));
+            return err;
+        }
 
         // 남은 바이트만큼 XOR
         for (size_t i = 0; i < rem; ++i) {
             ct[off + i] = pt[off + i] ^ keystream[i];
         }
     }
+
+    // 메모리 초기화 (보안)
+    memset(counter, 0, sizeof(counter));
+    memset(keystream, 0, sizeof(keystream));
 
     // CTR 모드는 암복호 동일 → SUCCESS 반환
     return SUCCESS;

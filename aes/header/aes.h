@@ -31,7 +31,7 @@ ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN 
 ERR_MSG sub_bytes(uint8_t state[4][4]);
 ERR_MSG shift_rows(uint8_t state[4][4]);
 ERR_MSG mix_columns(uint8_t state[4][4]);
-ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key);
+ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key, size_t round);
 
 ERR_MSG aes_encrypt(
 	OUT uint8_t* ct,

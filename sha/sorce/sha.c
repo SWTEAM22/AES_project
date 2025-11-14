@@ -38,15 +38,17 @@ static ERR_MSG sha256_process(
     IN  const uint32_t* iv,
     IN  size_t out_len)
 {
-    if (!digest) return ERR_SHA_HASH_NULL_PTR;
-    if (!data && data_len != 0) return ERR_SHA_HASH_INVALID_DATA;
+    if (digest == NULL) return ERR_SHA_HASH_NULL_PTR;
+    if (data == NULL && data_len != 0) return ERR_SHA_HASH_INVALID_DATA;
+    if (iv == NULL) return ERR_SHA_HASH_NULL_PTR;
+    if (out_len == 0 || out_len > SHA256_DIGEST_SIZE) return ERR_SHA_HASH_INVALID_DATA;
 
     uint32_t h[8]; memcpy(h, iv, sizeof(h));
 
-    size_t pad_len = (64 - ((data_len + 9) % 64)) % 64;
+    size_t pad_len = (SHA256_BLOCK_SIZE - ((data_len + 9) % SHA256_BLOCK_SIZE)) % SHA256_BLOCK_SIZE;
     size_t total = data_len + 1 + pad_len + 8;
     uint8_t* msg = malloc(total);
-    if (!msg) return ERR_SHA_HASH_FAIL;
+    if (msg == NULL) return ERR_SHA_HASH_FAIL;
 
     memcpy(msg, data, data_len);
     msg[data_len] = 0x80;
@@ -54,7 +56,7 @@ static ERR_MSG sha256_process(
     uint64_t bits = (uint64_t)data_len * 8;
     for (int i = 0; i < 8; i++) msg[total - 1 - i] = (uint8_t)(bits >> (8 * i));
 
-    for (size_t chunk = 0; chunk < total; chunk += 64) {
+    for (size_t chunk = 0; chunk < total; chunk += SHA256_BLOCK_SIZE) {
         uint32_t w[64];
         for (int i = 0; i < 16; i++)
             w[i] = ((uint32_t)msg[chunk + i * 4] << 24) |
@@ -76,6 +78,9 @@ static ERR_MSG sha256_process(
     for (size_t i = 0; i < out_len; i++)
         digest[i] = (uint8_t)(h[i / 4] >> (8 * (3 - (i % 4))));
 
+    // 메모리 초기화 후 해제 (보안)
+    memset(msg, 0, total);
+    memset(h, 0, sizeof(h));
     free(msg);
     return SUCCESS;
 }
@@ -145,15 +150,15 @@ ERR_MSG sha512_process(
 {
     if (digest == NULL) return ERR_SHA_HASH_NULL_PTR;
     if (data == NULL && data_len != 0) return ERR_SHA_HASH_INVALID_DATA;
+    if (initial_hash == NULL) return ERR_SHA_HASH_NULL_PTR;
+    if (output_len == 0 || output_len > SHA512_DIGEST_SIZE) return ERR_SHA_HASH_INVALID_DATA;
 
     uint64_t h[8]; memcpy(h, initial_hash, 8 * sizeof(uint64_t));
 
-    uint64_t a, b, c, d, e, f, g, hh;
-    uint64_t temp1, temp2;
     uint64_t w[80];
 
     uint64_t total_bits = (uint64_t)data_len * 8;
-    size_t padding_len = (128 - ((data_len + 17) % 128)) % 128;
+    size_t padding_len = (SHA512_BLOCK_SIZE - ((data_len + 17) % SHA512_BLOCK_SIZE)) % SHA512_BLOCK_SIZE;
     size_t total_len = data_len + 1 + padding_len + 16;
     uint8_t* message = (uint8_t*)malloc(total_len);
     if (message == NULL) return ERR_SHA_HASH_FAIL;
@@ -170,7 +175,7 @@ ERR_MSG sha512_process(
         message_bits >>= 8;
     }
 
-    for (size_t chunk = 0; chunk < total_len; chunk += 128) {
+    for (size_t chunk = 0; chunk < total_len; chunk += SHA512_BLOCK_SIZE) {
         for (int i = 0; i < 16; i++)
             w[i] = ((uint64_t)message[chunk + i * 8] << 56) |
             ((uint64_t)message[chunk + i * 8 + 1] << 48) |
@@ -199,6 +204,10 @@ ERR_MSG sha512_process(
         digest[i] = (uint8_t)(h[hash_idx] >> (byte_idx * 8));
     }
 
+    // 메모리 초기화 후 해제 (보안)
+    memset(message, 0, total_len);
+    memset(w, 0, sizeof(w));
+    memset(h, 0, sizeof(h));
     free(message);
     return SUCCESS;
 }

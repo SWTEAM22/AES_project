@@ -8,7 +8,14 @@ ERR_MSG key_expansion(
 	OUT AES_KEY* key,
 	IN const uint8_t* master_key,
 	IN size_t key_len) {
-	key_expansion_inline(key, master_key, key_len);
+	// 입력 검증
+	if (key == NULL || master_key == NULL) return ERR_AES_KEY_SCHEDULE_NULL_PTR;
+	if (key_len != AES_KEY_SIZE_128 && key_len != AES_KEY_SIZE_192 && key_len != AES_KEY_SIZE_256) {
+		return ERR_AES_KEY_SCHEDULE_INVALID_KEY;
+	}
+	
+	ERR_MSG err = key_expansion_inline(key, master_key, key_len);
+	if (err != SUCCESS) return err;
 	return SUCCESS;
 }
 
@@ -17,7 +24,11 @@ ERR_MSG aes_encrypt_block(
 	OUT uint8_t* ct,
 	IN const AES_KEY* key,
 	IN const uint8_t* pt) {
-	aes_encrypt(ct, key, pt);
+	// 입력 검증
+	if (ct == NULL || key == NULL || pt == NULL) return ERR_AES_ENCRYPT_NULL_PTR;
+	
+	ERR_MSG err = aes_encrypt(ct, key, pt);
+	if (err != SUCCESS) return err;
 	return SUCCESS;
 }
 
@@ -25,7 +36,11 @@ ERR_MSG aes_decrypt_block(
 	OUT uint8_t* pt,
 	IN const AES_KEY* key,
 	IN const uint8_t* ct) {
-	aes_decrypt(pt, key, ct);
+	// 입력 검증
+	if (pt == NULL || key == NULL || ct == NULL) return ERR_AES_DECRYPT_NULL_PTR;
+	
+	ERR_MSG err = aes_decrypt(pt, key, ct);
+	if (err != SUCCESS) return err;
 	return SUCCESS;
 }
 
@@ -36,6 +51,12 @@ ERR_MSG aes_ctr_crypto(
 	IN const uint8_t* pt,
 	IN size_t data_len,
 	IN const uint8_t* iv) {
-	aes_ctr_crypto_inline(ct, key, pt, data_len, iv);
+	// 입력 검증
+	if (ct == NULL || key == NULL || pt == NULL || iv == NULL) {
+		return ERR_AES_CTR_INVALID_ARG;
+	}
+	
+	ERR_MSG err = aes_ctr_crypto_inline(ct, key, pt, data_len, iv);
+	if (err != SUCCESS) return err;
 	return SUCCESS;
 }
