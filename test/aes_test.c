@@ -633,7 +633,7 @@ static int find_test_vector_files(char files[][256], int max_files) {
             do {
                 if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                     if (count < max_files) {
-                        snprintf(files[count], 256, "test\\%s", findData.cFileName);
+                        snprintf(files[count], 256, "test\\%s", (const char*)findData.cFileName);
                         count++;
                     }
                 }
@@ -648,7 +648,7 @@ static int find_test_vector_files(char files[][256], int max_files) {
                 do {
                     if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                         if (count < max_files) {
-                            snprintf(files[count], 256, "%s", findData.cFileName);
+                            snprintf(files[count], 256, "%s", (const char*)findData.cFileName);
                             count++;
                         }
                     }
@@ -691,6 +691,7 @@ static int find_test_vector_files(char files[][256], int max_files) {
     return count;
 }
 
+#ifdef AES_TEST_MAIN
 int main() {
     printf("========================================\n");
     printf("AES 테스트 벡터 파일 자동 테스트 시작\n");
@@ -735,3 +736,4 @@ int main() {
     
     return (passed_tests == total_tests) ? 0 : 1;
 }
+#endif // AES_TEST_MAIN

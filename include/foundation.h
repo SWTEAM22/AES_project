@@ -28,6 +28,7 @@
 #define SHA512_224_DIGEST_SIZE 28  // SHA-512/224 다이제스트 크기
 #define SHA512_256_DIGEST_SIZE 32  // SHA-512/256 다이제스트 크기
 
+
 typedef uint8_t byte;
 typedef uint16_t word;
 
