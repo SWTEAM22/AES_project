@@ -63,6 +63,18 @@ ERR_MSG encrypt_file_with_tag(
 	IN  size_t tag_len                   // 태그 길이
 );
 
+ERR_MSG encrypt_file_with_tag_ex(
+	IN  const char* input_filepath,
+	IN  const uint8_t* key,
+	IN  size_t key_len,
+	IN  const uint8_t* iv,
+	IN  size_t iv_len,
+	IN  const char* output_filepath,
+	OUT uint8_t* tag,
+	IN  size_t tag_len,
+	IN  SHA2_TYPE tag_type
+);
+
 ERR_MSG decrypt_file_with_tag(
 	IN  const char* input_filepath,      // 암호화된 파일 경로
 	IN  const uint8_t* key,              // AES 키
@@ -72,6 +84,18 @@ ERR_MSG decrypt_file_with_tag(
 	IN const char* output_filepath,     // 복호화된 파일 저장 경로
 	IN  const uint8_t* expected_tag,     // 예상되는 해시 태그
 	IN  size_t tag_len                   // 태그 길이
+);
+
+ERR_MSG decrypt_file_with_tag_ex(
+	IN  const char* input_filepath,
+	IN  const uint8_t* key,
+	IN  size_t key_len,
+	IN  const uint8_t* iv,
+	IN  size_t iv_len,
+	IN  const char* output_filepath,
+	IN  const uint8_t* expected_tag,
+	IN  size_t tag_len,
+	IN  SHA2_TYPE tag_type
 );
 
 #endif // !API_H

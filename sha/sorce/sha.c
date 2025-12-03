@@ -50,11 +50,16 @@ static ERR_MSG sha256_process(
     uint8_t* msg = malloc(total);
     if (msg == NULL) return ERR_SHA_HASH_FAIL;
 
-    memcpy(msg, data, data_len);
+    if (data_len > 0) {
+        memcpy(msg, data, data_len);
+    }
     msg[data_len] = 0x80;
     memset(msg + data_len + 1, 0, pad_len);
     uint64_t bits = (uint64_t)data_len * 8;
-    for (int i = 0; i < 8; i++) msg[total - 1 - i] = (uint8_t)(bits >> (8 * i));
+    // 길이 필드를 big-endian으로 저장 (최상위 바이트부터)
+    for (int i = 0; i < 8; i++) {
+        msg[total - 8 + i] = (uint8_t)((bits >> (56 - i * 8)) & 0xFF);
+    }
 
     for (size_t chunk = 0; chunk < total; chunk += SHA256_BLOCK_SIZE) {
         uint32_t w[64];
@@ -72,7 +77,7 @@ static ERR_MSG sha256_process(
             uint32_t t2 = sigma0_32(a) + maj32(a, b, c);
             hh = g; g = f; f = e; e = d + t1; d = c; c = b; b = a; a = t1 + t2;
         }
-        for (int i = 0; i < 8; i++) h[i] += ((&a)[i]);
+        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
     }
 
     for (size_t i = 0; i < out_len; i++)
@@ -140,6 +145,59 @@ static const uint64_t K[80] = {
     0x4cc5d4becb3e42b6ULL,0x597f299cfc657e2aULL,0x5fcb6fab3ad6faecULL,0x6c44198c4a475817ULL
 };
 
+static void sha512_transform(uint64_t state[8], const uint8_t* block) {
+    uint64_t w[80];
+
+    for (int i = 0; i < 16; i++) {
+        int idx = i * 8;
+        w[i] = ((uint64_t)block[idx] << 56) |
+               ((uint64_t)block[idx + 1] << 48) |
+               ((uint64_t)block[idx + 2] << 40) |
+               ((uint64_t)block[idx + 3] << 32) |
+               ((uint64_t)block[idx + 4] << 24) |
+               ((uint64_t)block[idx + 5] << 16) |
+               ((uint64_t)block[idx + 6] << 8) |
+               ((uint64_t)block[idx + 7]);
+    }
+    for (int i = 16; i < 80; i++) {
+        uint64_t s0 = gamma0(w[i - 15]);
+        uint64_t s1 = gamma1(w[i - 2]);
+        w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+    }
+
+    uint64_t a = state[0];
+    uint64_t b = state[1];
+    uint64_t c = state[2];
+    uint64_t d = state[3];
+    uint64_t e = state[4];
+    uint64_t f = state[5];
+    uint64_t g = state[6];
+    uint64_t h = state[7];
+
+    for (int i = 0; i < 80; i++) {
+        uint64_t t1 = h + sigma1(e) + ch(e, f, g) + K[i] + w[i];
+        uint64_t t2 = sigma0(a) + maj(a, b, c);
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+    state[4] += e;
+    state[5] += f;
+    state[6] += g;
+    state[7] += h;
+    memset(w, 0, sizeof(w));
+}
+
 // SHA-512 공통 처리 함수
 ERR_MSG sha512_process(
     OUT uint8_t* digest,
@@ -153,62 +211,42 @@ ERR_MSG sha512_process(
     if (initial_hash == NULL) return ERR_SHA_HASH_NULL_PTR;
     if (output_len == 0 || output_len > SHA512_DIGEST_SIZE) return ERR_SHA_HASH_INVALID_DATA;
 
-    uint64_t h[8]; memcpy(h, initial_hash, 8 * sizeof(uint64_t));
+    uint64_t state[8];
+    memcpy(state, initial_hash, sizeof(uint64_t) * 8);
 
-    uint64_t w[80];
+    size_t pad_len = (SHA512_BLOCK_SIZE - ((data_len + 1 + 16) % SHA512_BLOCK_SIZE)) % SHA512_BLOCK_SIZE;
+    size_t total_len = data_len + 1 + pad_len + 16;
+    uint8_t* buffer = (uint8_t*)malloc(total_len);
+    if (buffer == NULL) return ERR_SHA_HASH_FAIL;
 
-    uint64_t total_bits = (uint64_t)data_len * 8;
-    size_t padding_len = (SHA512_BLOCK_SIZE - ((data_len + 17) % SHA512_BLOCK_SIZE)) % SHA512_BLOCK_SIZE;
-    size_t total_len = data_len + 1 + padding_len + 16;
-    uint8_t* message = (uint8_t*)malloc(total_len);
-    if (message == NULL) return ERR_SHA_HASH_FAIL;
+    if (data_len > 0 && data != NULL) {
+        memcpy(buffer, data, data_len);
+    }
+    buffer[data_len] = 0x80;
+    memset(buffer + data_len + 1, 0, pad_len + 16);
 
-    if (data_len > 0 && data != NULL) memcpy(message, data, data_len);
-    message[data_len] = 0x80;
-    memset(message + data_len + 1, 0, padding_len);
+    uint64_t bit_len_low = ((uint64_t)data_len) << 3;
+    uint64_t bit_len_high = (sizeof(size_t) > 8) ? (uint64_t)(data_len >> 61) : 0;
 
-    uint64_t message_bits = (uint64_t)data_len * 8;
-    size_t length_offset = data_len + 1 + padding_len;
-    memset(message + length_offset, 0, 8);
+    uint8_t* length_ptr = buffer + total_len - 16;
     for (int i = 0; i < 8; i++) {
-        message[length_offset + 15 - i] = (uint8_t)(message_bits & 0xFF);
-        message_bits >>= 8;
+        length_ptr[i] = (uint8_t)((bit_len_high >> (56 - i * 8)) & 0xFF);
+        length_ptr[8 + i] = (uint8_t)((bit_len_low >> (56 - i * 8)) & 0xFF);
     }
 
-    for (size_t chunk = 0; chunk < total_len; chunk += SHA512_BLOCK_SIZE) {
-        for (int i = 0; i < 16; i++)
-            w[i] = ((uint64_t)message[chunk + i * 8] << 56) |
-            ((uint64_t)message[chunk + i * 8 + 1] << 48) |
-            ((uint64_t)message[chunk + i * 8 + 2] << 40) |
-            ((uint64_t)message[chunk + i * 8 + 3] << 32) |
-            ((uint64_t)message[chunk + i * 8 + 4] << 24) |
-            ((uint64_t)message[chunk + i * 8 + 5] << 16) |
-            ((uint64_t)message[chunk + i * 8 + 6] << 8) |
-            ((uint64_t)message[chunk + i * 8 + 7]);
-        for (int i = 16; i < 80; i++)
-            w[i] = gamma1(w[i - 2]) + w[i - 7] + gamma0(w[i - 15]) + w[i - 16];
-
-        uint64_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
-        for (int i = 0; i < 80; i++) {
-            uint64_t temp1 = hh + sigma1(e) + ch(e, f, g) + K[i] + w[i];
-            uint64_t temp2 = sigma0(a) + maj(a, b, c);
-            hh = g; g = f;
-            f = e; e = d + temp1; d = c; c = b; b = a; a = temp1 + temp2;
-        }
-        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+    for (size_t offset = 0; offset < total_len; offset += SHA512_BLOCK_SIZE) {
+        sha512_transform(state, buffer + offset);
     }
 
     for (size_t i = 0; i < output_len; i++) {
-        int hash_idx = i / 8;
-        int byte_idx = 7 - (i % 8);
-        digest[i] = (uint8_t)(h[hash_idx] >> (byte_idx * 8));
+        int word = (int)(i / 8);
+        int byte_idx = 7 - (int)(i % 8);
+        digest[i] = (uint8_t)((state[word] >> (byte_idx * 8)) & 0xFF);
     }
 
-    // 메모리 초기화 후 해제 (보안)
-    memset(message, 0, total_len);
-    memset(w, 0, sizeof(w));
-    memset(h, 0, sizeof(h));
-    free(message);
+    memset(buffer, 0, total_len);
+    free(buffer);
+    memset(state, 0, sizeof(state));
     return SUCCESS;
 }
 
@@ -229,7 +267,7 @@ ERR_MSG sha512_hash(
     IN  const uint8_t* data,
     IN  size_t data_len) {
     static const uint64_t sha512_initial_hash[8] = {
-        0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL, 0x3c6ef372fe94f82aULL, 0xa54ff53a5f1d36f1ULL,
+        0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL, 0x3c6ef372fe94f82bULL, 0xa54ff53a5f1d36f1ULL,
         0x510e527fade682d1ULL, 0x9b05688c2b3e6c1fULL, 0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL
     };
     return sha512_process(digest, data, data_len, sha512_initial_hash, 64);
