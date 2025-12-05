@@ -29,6 +29,24 @@
 #define SHA512_256_DIGEST_SIZE 32  // SHA-512/256 다이제스트 크기
 
 
+#define TESTCASE 0
+/*
+0 : file_crypto
+1 : aes_test
+2 : sha_test
+*/
+
+#if TESTCASE == 1
+#define AES_TEST_MAIN
+
+#elif TESTCASE == 2
+#define SHA_TEST_MAIN
+
+#else
+#define FILE_CRYPTO
+
+#endif // !TESTCASE
+
 typedef uint8_t byte;
 typedef uint16_t word;
 

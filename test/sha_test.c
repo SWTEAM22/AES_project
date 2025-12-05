@@ -327,7 +327,7 @@ static int test_sha2_file(const char* filename, int* file_total, int* file_pass)
     return (total_cases > 0 && total_cases == total_pass) ? 1 : 0;
 }
 
-#ifndef AES_TEST_MAIN
+#ifdef SHA_TEST_MAIN
 int main(void) {
     printf("========================================\n");
     printf("SHA-2 테스트 벡터 파일 자동 테스트 시작\n");
