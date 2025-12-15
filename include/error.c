@@ -2,7 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
-// 폴더 이름 추출 함수
+/**
+ * @file error.c
+ * @brief 에러 처리 구현 파일
+ *
+ * @details
+ *   이 파일은 에러 코드를 문자열로 변환하고 상세 정보를 출력하는
+ *   함수들의 구현을 포함한다.
+ *
+ * @see error.h
+ */
+
+/**
+ * @brief 폴더 코드로부터 폴더 이름을 반환하는 함수
+ *
+ * @param[in] folder_code 폴더 코드
+ *
+ * @return const char* 폴더 이름 문자열, 알 수 없는 코드면 "UNKNOWN_FOLDER"
+ */
 const char* get_folder_name(uint16_t folder_code) {
     switch(folder_code) {
         case FOLDER_AES:     return "AES";
@@ -14,7 +31,13 @@ const char* get_folder_name(uint16_t folder_code) {
     }
 }
 
-// 함수 이름 추출 함수
+/**
+ * @brief 함수 코드로부터 함수 이름을 반환하는 함수
+ *
+ * @param[in] func_code 함수 코드
+ *
+ * @return const char* 함수 이름 문자열, 알 수 없는 코드면 "UNKNOWN_FUNCTION"
+ */
 const char* get_function_name(uint16_t func_code) {
     switch(func_code) {
         case FUNC_INTERNAL:         return "INTERNAL";
@@ -48,7 +71,13 @@ const char* get_function_name(uint16_t func_code) {
     }
 }
 
-// 에러 타입 메시지 추출 함수
+/**
+ * @brief 에러 타입 코드로부터 에러 타입 메시지를 반환하는 함수
+ *
+ * @param[in] err_type 에러 타입 코드
+ *
+ * @return const char* 에러 타입 메시지 문자열, 알 수 없는 타입이면 "Unknown error type"
+ */
 const char* get_error_type_message(uint16_t err_type) {
     switch(err_type) {
         case ERR_TYPE_NULL_POINTER:    return "NULL pointer error";
@@ -65,14 +94,46 @@ const char* get_error_type_message(uint16_t err_type) {
     }
 }
 
-// 에러 메시지 포맷팅 함수
+/**
+ * @brief 에러 메시지를 포맷팅하는 내부 함수
+ *
+ * @param[in] folder    폴더 이름
+ * @param[in] func      함수 이름
+ * @param[in] error_msg 에러 타입 메시지
+ *
+ * @return const char* 포맷팅된 에러 메시지 문자열
+ *
+ * @remark
+ *   - 정적 버퍼를 사용하므로 반환된 포인터는 다음 호출 전까지만 유효하다.
+ *   - 형식: "[폴더::함수] 에러 메시지"
+ */
 static const char* format_error_message(const char* folder, const char* func, const char* error_msg) {
     static char buffer[256];
     snprintf(buffer, sizeof(buffer), "[%s::%s] %s", folder, func, error_msg);
     return buffer;
 }
 
-// 기본 에러 메시지 변환 함수
+/**
+ * @brief 에러 코드를 문자열로 변환하는 함수
+ *
+ * @details
+ *   에러 코드를 분석하여 폴더, 함수, 에러 타입을 추출하고
+ *   포맷팅된 에러 메시지 문자열을 반환한다.
+ *
+ * @param[in] code 에러 코드
+ *
+ * @return const char* 포맷팅된 에러 메시지 문자열
+ *   - 형식: "[폴더::함수] 에러 타입 메시지"
+ *
+ * @remark
+ *   - 내부적으로 format_error_message()를 사용한다.
+ *   - 반환된 포인터는 다음 호출 전까지만 유효하다.
+ *
+ * @see get_folder_name()
+ * @see get_function_name()
+ * @see get_error_type_message()
+ * @see print_error_details()
+ */
 const char* error_to_string(ERR_MSG code) {
     // 폴더별 에러 메시지
     uint16_t folder = GET_FOLDER(code);
@@ -92,7 +153,21 @@ const char* error_to_string(ERR_MSG code) {
     return format_error_message(folder_name, func_name, error_msg);
 }
 
-// 디버깅용 상세 정보 출력 함수
+/**
+ * @brief 에러 코드의 상세 정보를 출력하는 함수 (디버깅용)
+ *
+ * @details
+ *   에러 코드를 분석하여 상세 정보를 표준 출력으로 출력한다.
+ *   출력 내용: 에러 코드(16진수), 폴더, 함수, 에러 타입, 전체 메시지
+ *
+ * @param[in] code 에러 코드
+ *
+ * @remark
+ *   - 디버깅 및 개발 시 사용한다.
+ *   - 프로덕션 코드에서는 사용하지 않는 것을 권장한다.
+ *
+ * @see error_to_string()
+ */
 void print_error_details(ERR_MSG code) {
     uint16_t folder = GET_FOLDER(code);
     uint16_t func = GET_FUNCTION(code);
