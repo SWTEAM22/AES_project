@@ -52,11 +52,55 @@ static const uint8_t AES_INV_SBOX[256] = {
 
 /*----------------------------------- GF128 상에서 곱셈 연산 -------------------------------------------*/
 
+/**
+ * @brief GF(2^8) 유한체에서 x 곱셈 연산 (xtimes)
+ *
+ * @details
+ *   - GF(2^8) 유한체에서 입력 바이트에 x(다항식 표현: 0x02)를 곱하는 연산을 수행한다.
+ *   - 이는 왼쪽으로 1비트 시프트하고, 최상위 비트가 1이면 기약 다항식 0x1B와 XOR한다.
+ *   - MixColumns 연산에서 사용되는 기본 연산이다.
+ *
+ * @param[in,out] dat 곱셈 연산을 수행할 바이트 포인터 (연산 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: dat가 NULL
+ *
+ * @remark
+ *   - GF(2^8)의 기약 다항식은 x^8 + x^4 + x^3 + x + 1 (0x11B)이다.
+ *   - 최상위 비트가 1이면 모듈로 감소를 위해 0x1B와 XOR한다.
+ *
+ * @see gf_mult()
+ * @see mix_columns()
+ * @see inv_mix_columns()
+ */
 ERR_MSG xtimes(uint8_t* dat) {
     if (dat == NULL) return ERR_API_INVALID_ARG; 
     *dat = (uint8_t)((*dat << 1) ^ ((*dat & 0x80) ? 0x1B : 0x00));
 	return SUCCESS;
 }
+/**
+ * @brief GF(2^8) 유한체에서 두 바이트의 곱셈 연산
+ *
+ * @details
+ *   - GF(2^8) 유한체에서 두 바이트(src1, src2)를 곱하여 결과를 dst에 저장한다.
+ *   - 이진 필드 곱셈 알고리즘을 사용하여 구현되었다.
+ *   - MixColumns 및 InvMixColumns 연산에서 사용된다.
+ *
+ * @param[out] dst  곱셈 결과를 저장할 바이트 포인터
+ * @param[in]  src1 곱셈할 첫 번째 바이트
+ * @param[in]  src2 곱셈할 두 번째 바이트
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: dst, src1, src2 중 하나가 NULL
+ *
+ * @remark
+ *   - 내부적으로 xtimes() 함수를 사용하여 구현된다.
+ *   - 이진 필드 곱셈은 비트 단위 연산으로 효율적으로 구현된다.
+ *
+ * @see xtimes()
+ * @see mix_columns()
+ * @see inv_mix_columns()
+ */
 ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2) {
     if (dst == NULL || src1 == NULL || src2 == NULL) return ERR_API_INVALID_ARG;
     uint8_t a = src1[0], b = src2[0], res = 0;
@@ -75,6 +119,27 @@ ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2
 
 /*--------------------------------- 키확장 및 키확장 내부함수 ----------------------------------------*/
 
+/**
+ * @brief 32비트 워드에 S-box를 적용하는 함수
+ *
+ * @details
+ *   - 32비트 워드의 각 바이트에 AES S-box를 적용한다.
+ *   - 키 확장(key expansion) 과정에서 사용된다.
+ *   - 워드의 4개 바이트 각각을 S-box로 치환한다.
+ *
+ * @param[in,out] word S-box를 적용할 32비트 워드 포인터 (결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: word가 NULL
+ *
+ * @remark
+ *   - 워드는 빅엔디안 형식으로 저장된다 (최상위 바이트가 먼저).
+ *   - AES_SBOX 테이블을 사용하여 바이트 치환을 수행한다.
+ *
+ * @see rot_word()
+ * @see key_expansion_inline()
+ * @see AES_SBOX
+ */
 ERR_MSG sub_word(uint32_t* word) {
     if (word == NULL) return ERR_API_INVALID_ARG;
     uint32_t w = *word;
@@ -92,6 +157,26 @@ ERR_MSG sub_word(uint32_t* word) {
     return SUCCESS;
 }
 
+/**
+ * @brief 4바이트 워드를 왼쪽으로 1바이트 회전하는 함수
+ *
+ * @details
+ *   - 4바이트 배열을 왼쪽으로 1바이트 순환 시프트한다.
+ *   - [a, b, c, d] -> [b, c, d, a]
+ *   - 키 확장(key expansion) 과정에서 사용된다.
+ *
+ * @param[in,out] word 회전할 4바이트 배열 포인터 (결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: word가 NULL
+ *
+ * @remark
+ *   - word는 최소 4바이트의 연속된 메모리를 가리켜야 한다.
+ *   - RotWord 연산은 키 확장의 일부로 수행된다.
+ *
+ * @see sub_word()
+ * @see key_expansion_inline()
+ */
 ERR_MSG rot_word(uint8_t* word) {
     if (word == NULL) return ERR_API_INVALID_ARG;
     uint8_t t = word[0];
@@ -102,6 +187,33 @@ ERR_MSG rot_word(uint8_t* word) {
     return SUCCESS;
 }
 
+/**
+ * @brief AES 키 확장(키 스케줄) 함수 (인라인 구현)
+ *
+ * @details
+ *   - AES 마스터 키를 받아 라운드 키로 확장하여 AES_KEY 구조체에 저장한다.
+ *   - AES-128, AES-192, AES-256을 모두 지원한다.
+ *   - 키 확장 알고리즘은 AES 표준(FIPS 197)을 따른다.
+ *   - 내부적으로 sub_word(), rot_word() 함수를 사용한다.
+ *
+ * @param[out] key        확장된 라운드 키를 저장할 AES_KEY 구조체 포인터
+ * @param[in]  master_key 마스터 키 (16/24/32바이트)
+ * @param[in]  key_len    마스터 키의 길이 (바이트 단위, 16/24/32 중 하나)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: key 또는 master_key가 NULL
+ *   - ERR_AES_KEY_SCHEDULE_INVALID_KEY: 유효하지 않은 키 길이
+ *
+ * @remark
+ *   - AES-128: 10라운드, AES-192: 12라운드, AES-256: 14라운드
+ *   - 각 라운드마다 4개의 32비트 워드가 필요하므로, 총 (라운드 수 + 1) * 4개의 워드가 생성된다.
+ *   - Rcon(라운드 상수) 테이블을 사용하여 키 확장을 수행한다.
+ *   - AES-256의 경우 추가적인 SubWord 연산이 필요하다.
+ *
+ * @see sub_word()
+ * @see rot_word()
+ * @see key_expansion()
+ */
 ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN size_t key_len) {
     if (key == NULL || master_key == NULL) return ERR_API_INVALID_ARG;
     
@@ -171,6 +283,29 @@ ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN 
 
 /*------------------------------ AES 암호화 및 암호화 내부함수 ------------------------------------------*/
 
+/**
+ * @brief AES SubBytes 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 바이트를 S-box를 사용하여 치환한다.
+ *   - 이는 AES 암호화의 첫 번째 주요 단계이다.
+ *   - 각 바이트는 AES_SBOX 테이블을 통해 비선형 치환된다.
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - state는 열 우선 순서로 저장된다 (state[row][col]).
+ *   - S-box 치환은 AES의 비선형성을 제공한다.
+ *
+ * @see shift_rows()
+ * @see mix_columns()
+ * @see add_round_key()
+ * @see aes_encrypt()
+ * @see AES_SBOX
+ */
 ERR_MSG sub_bytes(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
     for (int r = 0; r < 4; ++r)
@@ -179,6 +314,30 @@ ERR_MSG sub_bytes(uint8_t state[4][4]) {
     return SUCCESS;
 }
 
+/**
+ * @brief AES ShiftRows 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 행을 왼쪽으로 순환 시프트한다.
+ *   - Row 0: 시프트 없음 (0바이트)
+ *   - Row 1: 왼쪽으로 1바이트 시프트
+ *   - Row 2: 왼쪽으로 2바이트 시프트
+ *   - Row 3: 왼쪽으로 3바이트 시프트 (또는 오른쪽으로 1바이트)
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - ShiftRows는 AES의 확산(diffusion) 특성을 제공한다.
+ *   - 각 행이 독립적으로 시프트되므로 병렬 처리에 유리하다.
+ *
+ * @see sub_bytes()
+ * @see mix_columns()
+ * @see add_round_key()
+ * @see aes_encrypt()
+ */
 ERR_MSG shift_rows(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
 
@@ -208,6 +367,31 @@ ERR_MSG shift_rows(uint8_t state[4][4]) {
     return SUCCESS;
 }
 
+/**
+ * @brief AES MixColumns 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 열에 고정 행렬을 곱하여 혼합한다.
+ *   - GF(2^8) 유한체에서의 행렬 곱셈을 수행한다.
+ *   - 각 열은 독립적으로 처리되며, 4x4 고정 행렬과 곱해진다.
+ *   - 마지막 라운드에서는 MixColumns가 생략된다.
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - MixColumns는 AES의 확산(diffusion) 특성을 강화한다.
+ *   - 내부적으로 gf_mult() 함수를 사용하여 GF(2^8) 곱셈을 수행한다.
+ *   - 고정 행렬 계수: {0x02, 0x03, 0x01, 0x01}, {0x01, 0x02, 0x03, 0x01}, ...
+ *
+ * @see gf_mult()
+ * @see sub_bytes()
+ * @see shift_rows()
+ * @see add_round_key()
+ * @see aes_encrypt()
+ */
 ERR_MSG mix_columns(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
 
@@ -240,6 +424,31 @@ ERR_MSG mix_columns(uint8_t state[4][4]) {
 }
 
 
+/**
+ * @brief AES AddRoundKey 변환 함수
+ *
+ * @details
+ *   - AES state 행렬에 라운드 키를 XOR 연산으로 더한다.
+ *   - 각 라운드마다 해당하는 라운드 키를 사용한다.
+ *   - 암호화와 복호화 모두에서 동일하게 사용된다.
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ * @param[in]     key   확장된 AES 키 구조체
+ * @param[in]     round 라운드 번호 (0부터 시작)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state 또는 key가 NULL
+ *
+ * @remark
+ *   - 라운드 키는 32비트 워드 단위로 저장되며, state의 각 열과 XOR된다.
+ *   - 초기 라운드(round 0)와 모든 메인 라운드에서 사용된다.
+ *
+ * @see sub_bytes()
+ * @see shift_rows()
+ * @see mix_columns()
+ * @see aes_encrypt()
+ * @see aes_decrypt()
+ */
 ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key, size_t round) {
     if (state == NULL || key == NULL) return ERR_API_INVALID_ARG;
     for (int c = 0; c < 4; ++c) {
@@ -252,6 +461,36 @@ ERR_MSG add_round_key(uint8_t state[4][4], const AES_KEY* key, size_t round) {
     return SUCCESS;
 }
 
+/**
+ * @brief AES 블록 암호화 함수
+ *
+ * @details
+ *   - 16바이트 평문 블록을 AES 알고리즘으로 암호화하여 16바이트 암호문을 생성한다.
+ *   - AES 표준(FIPS 197)을 따르는 전체 암호화 과정을 수행한다.
+ *   - 암호화 과정: AddRoundKey(초기) -> [SubBytes -> ShiftRows -> MixColumns -> AddRoundKey] (메인 라운드) -> [SubBytes -> ShiftRows -> AddRoundKey] (마지막 라운드)
+ *   - AES-128, AES-192, AES-256을 모두 지원한다.
+ *
+ * @param[out] ct  생성된 암호문 블록 (16바이트)
+ * @param[in]  key 확장된 AES 키 구조체 (key_expansion()으로 생성됨)
+ * @param[in]  pt  암호화할 평문 블록 (16바이트)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: ct, key, pt 중 하나가 NULL
+ *   - ERR_AES_ENCRYPT_INVALID_DATA: 키 라운드 수가 유효하지 않음
+ *
+ * @remark
+ *   - 평문과 암호문은 16바이트(128비트) 고정 크기이다.
+ *   - key는 key_expansion() 또는 key_expansion_inline()으로 미리 확장되어 있어야 한다.
+ *   - state 행렬은 열 우선 순서로 저장되며, 입력/출력은 바이트 배열로 변환된다.
+ *
+ * @see key_expansion()
+ * @see key_expansion_inline()
+ * @see sub_bytes()
+ * @see shift_rows()
+ * @see mix_columns()
+ * @see add_round_key()
+ * @see aes_decrypt()
+ */
 ERR_MSG aes_encrypt(
 	OUT uint8_t* ct,
 	IN const AES_KEY* key,
@@ -303,6 +542,29 @@ ERR_MSG aes_encrypt(
 
 /*------------------------------ AES 복호화 및 복호화 내부함수 ------------------------------------------*/
 
+/**
+ * @brief AES InvSubBytes 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 바이트를 역 S-box를 사용하여 치환한다.
+ *   - 이는 SubBytes의 역연산으로, AES 복호화의 주요 단계이다.
+ *   - 각 바이트는 AES_INV_SBOX 테이블을 통해 역 비선형 치환된다.
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - state는 열 우선 순서로 저장된다 (state[row][col]).
+ *   - 역 S-box 치환은 암호화의 S-box 치환을 되돌린다.
+ *
+ * @see inv_shift_rows()
+ * @see inv_mix_columns()
+ * @see add_round_key()
+ * @see aes_decrypt()
+ * @see AES_INV_SBOX
+ */
 ERR_MSG inv_sub_bytes(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
     for (int r = 0; r < 4; ++r)
@@ -310,6 +572,32 @@ ERR_MSG inv_sub_bytes(uint8_t state[4][4]) {
             state[r][c] = AES_INV_SBOX[state[r][c]];
 	return SUCCESS;
 }
+/**
+ * @brief AES InvShiftRows 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 행을 오른쪽으로 순환 시프트한다.
+ *   - 이는 ShiftRows의 역연산으로, AES 복호화의 주요 단계이다.
+ *   - Row 0: 시프트 없음 (0바이트)
+ *   - Row 1: 오른쪽으로 1바이트 시프트 (또는 왼쪽으로 3바이트)
+ *   - Row 2: 오른쪽으로 2바이트 시프트 (또는 왼쪽으로 2바이트)
+ *   - Row 3: 오른쪽으로 3바이트 시프트 (또는 왼쪽으로 1바이트)
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - InvShiftRows는 ShiftRows의 역연산이다.
+ *   - 각 행이 독립적으로 시프트되므로 병렬 처리에 유리하다.
+ *
+ * @see inv_sub_bytes()
+ * @see inv_mix_columns()
+ * @see add_round_key()
+ * @see aes_decrypt()
+ * @see shift_rows()
+ */
 ERR_MSG inv_shift_rows(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
     
@@ -341,6 +629,32 @@ ERR_MSG inv_shift_rows(uint8_t state[4][4]) {
     
 	return SUCCESS;
 }
+/**
+ * @brief AES InvMixColumns 변환 함수
+ *
+ * @details
+ *   - AES state 행렬의 각 열에 역 고정 행렬을 곱하여 혼합을 되돌린다.
+ *   - GF(2^8) 유한체에서의 역 행렬 곱셈을 수행한다.
+ *   - 각 열은 독립적으로 처리되며, 4x4 역 고정 행렬과 곱해진다.
+ *   - 이는 MixColumns의 역연산으로, AES 복호화의 주요 단계이다.
+ *
+ * @param[in,out] state AES state 행렬 (4x4 바이트 배열, 결과가 저장됨)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: state가 NULL
+ *
+ * @remark
+ *   - InvMixColumns는 MixColumns의 역연산이다.
+ *   - 내부적으로 gf_mult() 함수를 사용하여 GF(2^8) 곱셈을 수행한다.
+ *   - 역 고정 행렬 계수: {0x0e, 0x0b, 0x0d, 0x09}, {0x09, 0x0e, 0x0b, 0x0d}, ...
+ *
+ * @see gf_mult()
+ * @see inv_sub_bytes()
+ * @see inv_shift_rows()
+ * @see add_round_key()
+ * @see aes_decrypt()
+ * @see mix_columns()
+ */
 ERR_MSG inv_mix_columns(uint8_t state[4][4]) {
     if (state == NULL) return ERR_API_INVALID_ARG;
 
@@ -371,6 +685,37 @@ ERR_MSG inv_mix_columns(uint8_t state[4][4]) {
 }
 // add_round_key 함수는 암호화와 동일
 
+/**
+ * @brief AES 블록 복호화 함수
+ *
+ * @details
+ *   - 16바이트 암호문 블록을 AES 알고리즘으로 복호화하여 16바이트 평문을 생성한다.
+ *   - AES 표준(FIPS 197)을 따르는 전체 복호화 과정을 수행한다.
+ *   - 복호화 과정: AddRoundKey(초기, 마지막 라운드 키) -> [InvShiftRows -> InvSubBytes -> AddRoundKey -> InvMixColumns] (메인 라운드, 역순) -> [InvShiftRows -> InvSubBytes -> AddRoundKey] (마지막 라운드, 라운드 0 키)
+ *   - AES-128, AES-192, AES-256을 모두 지원한다.
+ *
+ * @param[out] pt  생성된 평문 블록 (16바이트)
+ * @param[in]  key 확장된 AES 키 구조체 (key_expansion()으로 생성됨)
+ * @param[in]  ct  복호화할 암호문 블록 (16바이트)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_API_INVALID_ARG: pt, key, ct 중 하나가 NULL
+ *   - ERR_AES_DECRYPT_INVALID_DATA: 키 라운드 수가 유효하지 않음
+ *
+ * @remark
+ *   - 평문과 암호문은 16바이트(128비트) 고정 크기이다.
+ *   - key는 key_expansion() 또는 key_expansion_inline()으로 미리 확장되어 있어야 한다.
+ *   - state 행렬은 열 우선 순서로 저장되며, 입력/출력은 바이트 배열로 변환된다.
+ *   - 복호화는 암호화의 역순으로 수행되며, 라운드 키도 역순으로 사용된다.
+ *
+ * @see key_expansion()
+ * @see key_expansion_inline()
+ * @see inv_sub_bytes()
+ * @see inv_shift_rows()
+ * @see inv_mix_columns()
+ * @see add_round_key()
+ * @see aes_encrypt()
+ */
 ERR_MSG aes_decrypt(
 	OUT uint8_t* pt,
 	IN const AES_KEY* key,

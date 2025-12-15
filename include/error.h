@@ -3,9 +3,20 @@
 
 #include <stdint.h>
 
-/*----------------------------------- 오류 출력 함수-------------------------------------------*/
+/**
+ * @file error.h
+ * @brief 에러 코드 및 에러 처리 헤더 파일
+ *
+ * @details
+ *   이 헤더 파일은 암호화 라이브러리에서 사용하는 에러 코드 체계와
+ *   에러 처리 함수를 정의한다.
+ *   에러 코드는 폴더, 함수, 에러 타입의 조합으로 구성된다.
+ */
 
+/** @brief 성공 코드 */
 #define SUCCESS 0
+
+/** @brief 실패 코드 */
 #define FAIL 1
 
 #define ERR_MSG uint16_t
@@ -89,11 +100,55 @@
 #define ERR_API_MEMORY_ALLOC				MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_MEMORY_ALLOC)
 #define ERR_API_INVALID_DATA				MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_INVALID_DATA)
 
-// 에러 메시지 출력 함수들
+/**
+ * @brief 에러 코드를 문자열로 변환하는 함수
+ *
+ * @param[in] code 에러 코드
+ *
+ * @return const char* 에러 메시지 문자열
+ *
+ * @see print_error_details()
+ */
 const char* error_to_string(ERR_MSG code);
+
+/**
+ * @brief 폴더 코드로부터 폴더 이름을 반환하는 함수
+ *
+ * @param[in] folder_code 폴더 코드
+ *
+ * @return const char* 폴더 이름 문자열
+ */
 const char* get_folder_name(uint16_t folder_code);
+
+/**
+ * @brief 함수 코드로부터 함수 이름을 반환하는 함수
+ *
+ * @param[in] func_code 함수 코드
+ *
+ * @return const char* 함수 이름 문자열
+ */
 const char* get_function_name(uint16_t func_code);
+
+/**
+ * @brief 에러 타입 코드로부터 에러 타입 메시지를 반환하는 함수
+ *
+ * @param[in] err_type 에러 타입 코드
+ *
+ * @return const char* 에러 타입 메시지 문자열
+ */
 const char* get_error_type_message(uint16_t err_type);
+
+/**
+ * @brief 에러 코드의 상세 정보를 출력하는 함수 (디버깅용)
+ *
+ * @param[in] code 에러 코드
+ *
+ * @remark
+ *   - 에러 코드, 폴더, 함수, 에러 타입, 전체 메시지를 출력한다.
+ *   - 디버깅 및 개발 시 사용한다.
+ *
+ * @see error_to_string()
+ */
 void print_error_details(ERR_MSG code);
 
 #endif // !ERROR_H

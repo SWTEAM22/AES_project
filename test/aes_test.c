@@ -16,10 +16,29 @@
 #include "../aes/header/aes_ctr.h"
 #include "../aes/header/aes.h"
 
+/**
+ * @file aes_test.c
+ * @brief AES 알고리즘 테스트 프로그램
+ *
+ * @details
+ *   이 파일은 AES 암호화 알고리즘의 정확성을 검증하는 테스트 프로그램이다.
+ *   NIST 표준 테스트 벡터를 사용하여 AES-128, AES-192, AES-256의
+ *   암호화 및 복호화 기능을 테스트한다.
+ *
+ * @author Secure Software Team
+ * @date 2024
+ */
+
 #define MAX_LINE_LEN 2048
 #define MAX_FILES 20
 
-// 16진수 문자를 숫자로 변환
+/**
+ * @brief 16진수 문자를 숫자로 변환하는 함수
+ *
+ * @param[in] c 변환할 16진수 문자 ('0'-'9', 'a'-'f', 'A'-'F')
+ *
+ * @return int 변환된 숫자 (0-15), 유효하지 않은 문자면 -1
+ */
 static int hex_char_to_int(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -27,7 +46,19 @@ static int hex_char_to_int(char c) {
     return -1;
 }
 
-// 공백으로 구분된 16진수 문자열을 바이트 배열로 변환 (예: "2B 7E 15 16" -> [0x2B, 0x7E, 0x15, 0x16])
+/**
+ * @brief 공백으로 구분된 16진수 문자열을 바이트 배열로 변환하는 함수
+ *
+ * @details
+ *   공백으로 구분된 16진수 문자열을 파싱하여 바이트 배열로 변환한다.
+ *   예: "2B 7E 15 16" -> [0x2B, 0x7E, 0x15, 0x16]
+ *
+ * @param[in]  str      파싱할 16진수 문자열
+ * @param[out] output   변환된 바이트를 저장할 배열
+ * @param[in]  max_len  output 배열의 최대 길이
+ *
+ * @return int 변환된 바이트 수
+ */
 static int parse_hex_string_spaced(const char* str, uint8_t* output, size_t max_len) {
     int count = 0;
     const char* p = str;
@@ -53,7 +84,19 @@ static int parse_hex_string_spaced(const char* str, uint8_t* output, size_t max_
     return count;
 }
 
-// 공백 없는 16진수 문자열을 바이트 배열로 변환 (예: "2b7e1516" -> [0x2B, 0x7E, 0x15, 0x16])
+/**
+ * @brief 공백 없는 16진수 문자열을 바이트 배열로 변환하는 함수
+ *
+ * @details
+ *   공백 없이 연속된 16진수 문자열을 파싱하여 바이트 배열로 변환한다.
+ *   예: "2b7e1516" -> [0x2B, 0x7E, 0x15, 0x16]
+ *
+ * @param[in]  str      파싱할 16진수 문자열
+ * @param[out] output   변환된 바이트를 저장할 배열
+ * @param[in]  max_len  output 배열의 최대 길이
+ *
+ * @return int 변환된 바이트 수
+ */
 static int parse_hex_string_compact(const char* str, uint8_t* output, size_t max_len) {
     int count = 0;
     const char* p = str;
@@ -77,6 +120,13 @@ static int parse_hex_string_compact(const char* str, uint8_t* output, size_t max
     return count;
 }
 
+/**
+ * @brief 데이터를 레이블과 함께 출력하는 함수
+ *
+ * @param[in] label 출력할 레이블
+ * @param[in] data  출력할 데이터
+ * @param[in] len   데이터 길이 (바이트 단위)
+ */
 static void print_bytes(const char* label, const uint8_t* data, size_t len) {
     if (!label || !data) return;
     printf("%s (%zu bytes):\n", label, len);
@@ -84,7 +134,18 @@ static void print_bytes(const char* label, const uint8_t* data, size_t len) {
     printf("\n");
 }
 
-// 라인에서 특정 키워드 찾기 (반환된 포인터는 다음 호출 전까지만 유효)
+/**
+ * @brief 파일에서 특정 접두사로 시작하는 라인을 찾는 함수
+ *
+ * @param[in] file   검색할 파일 포인터
+ * @param[in] prefix 찾을 접두사 문자열
+ *
+ * @return const char* 찾은 라인 문자열, 없으면 NULL
+ *
+ * @remark
+ *   - 반환된 포인터는 다음 호출 전까지만 유효하다 (정적 버퍼 사용).
+ *   - 파일을 처음부터 검색한다 (rewind 수행).
+ */
 static const char* find_line_with_prefix(FILE* file, const char* prefix) {
     static char line_storage[MAX_LINE_LEN];
     rewind(file);
@@ -97,7 +158,17 @@ static const char* find_line_with_prefix(FILE* file, const char* prefix) {
     return NULL;
 }
 
-// AES-128/192/256 테스트 벡터 파일 파싱 및 테스트
+/**
+ * @brief AES-128/192/256 테스트 벡터 파일을 파싱하고 테스트하는 함수
+ *
+ * @details
+ *   NIST 표준 테스트 벡터 파일을 읽어서 AES 암호화 및 복호화를 테스트한다.
+ *   파일명에서 키 길이를 자동으로 감지한다 (128/192/256).
+ *
+ * @param[in] filename 테스트 벡터 파일 경로
+ *
+ * @return int 성공한 테스트 케이스 수, 실패 시 0
+ */
 static int test_aes_ecb_file(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -692,6 +763,16 @@ static int find_test_vector_files(char files[][256], int max_files) {
 }
 
 #ifdef AES_TEST_MAIN
+/**
+ * @brief AES 테스트 프로그램의 메인 함수
+ *
+ * @details
+ *   AES 테스트 벡터 파일들을 자동으로 찾아서 테스트를 수행한다.
+ *   테스트 디렉토리에서 tv_aes*.txt 파일들을 검색하여
+ *   AES-128, AES-192, AES-256 암호화 및 복호화를 테스트한다.
+ *
+ * @return int 프로그램 종료 코드 (0: 성공, 1: 실패)
+ */
 int main() {
     printf("========================================\n");
     printf("AES 테스트 벡터 파일 자동 테스트 시작\n");

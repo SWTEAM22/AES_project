@@ -5,20 +5,92 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+/**
+ * @file sha.c
+ * @brief SHA-2 해시 알고리즘 구현
+ *
+ * @details
+ *   이 파일은 SHA-2 계열 해시 알고리즘(SHA-224, SHA-256, SHA-384, SHA-512,
+ *   SHA-512/224, SHA-512/256)의 구현을 포함한다.
+ *
+ * @author Secure Software Team
+ * @date 2024
+ * @see sha.h
+ */
 
 /*=====================================================================
  *  SHA-224 / SHA-256 IMPLEMENTATION
  *=====================================================================*/
 
+/**
+ * @brief 32비트 값을 오른쪽으로 순환 시프트하는 함수
+ *
+ * @param[in] x 시프트할 32비트 값
+ * @param[in] n 시프트할 비트 수
+ *
+ * @return uint32_t 시프트된 32비트 값
+ */
 static uint32_t rotr32(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
+
+/**
+ * @brief SHA-256 Choice 함수 (ch)
+ *
+ * @param[in] x 첫 번째 32비트 값
+ * @param[in] y 두 번째 32비트 값
+ * @param[in] z 세 번째 32비트 값
+ *
+ * @return uint32_t (x & y) ^ (~x & z)
+ */
 static uint32_t ch32(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (~x & z); }
+
+/**
+ * @brief SHA-256 Majority 함수 (maj)
+ *
+ * @param[in] x 첫 번째 32비트 값
+ * @param[in] y 두 번째 32비트 값
+ * @param[in] z 세 번째 32비트 값
+ *
+ * @return uint32_t (x & y) ^ (x & z) ^ (y & z)
+ */
 static uint32_t maj32(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (x & z) ^ (y & z); }
+
+/**
+ * @brief SHA-256 Sigma0 함수 (σ0)
+ *
+ * @param[in] x 입력 32비트 값
+ *
+ * @return uint32_t ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22)
+ */
 static uint32_t sigma0_32(uint32_t x) { return rotr32(x, 2) ^ rotr32(x, 13) ^ rotr32(x, 22); }
+
+/**
+ * @brief SHA-256 Sigma1 함수 (σ1)
+ *
+ * @param[in] x 입력 32비트 값
+ *
+ * @return uint32_t ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25)
+ */
 static uint32_t sigma1_32(uint32_t x) { return rotr32(x, 6) ^ rotr32(x, 11) ^ rotr32(x, 25); }
+
+/**
+ * @brief SHA-256 Gamma0 함수 (γ0)
+ *
+ * @param[in] x 입력 32비트 값
+ *
+ * @return uint32_t ROTR(x, 7) ^ ROTR(x, 18) ^ (x >> 3)
+ */
 static uint32_t gamma0_32(uint32_t x) { return rotr32(x, 7) ^ rotr32(x, 18) ^ (x >> 3); }
+
+/**
+ * @brief SHA-256 Gamma1 함수 (γ1)
+ *
+ * @param[in] x 입력 32비트 값
+ *
+ * @return uint32_t ROTR(x, 17) ^ ROTR(x, 19) ^ (x >> 10)
+ */
 static uint32_t gamma1_32(uint32_t x) { return rotr32(x, 17) ^ rotr32(x, 19) ^ (x >> 10); }
 
-/* SHA-256 상수 K */
+/** @brief SHA-256 라운드 상수 K (64개) */
 static const uint32_t K256[64] = {
     0x428a2f98UL,0x71374491UL,0xb5c0fbcfUL,0xe9b5dba5UL,0x3956c25bUL,0x59f111f1UL,0x923f82a4UL,0xab1c5ed5UL,
     0xd807aa98UL,0x12835b01UL,0x243185beUL,0x550c7dc3UL,0x72be5d74UL,0x80deb1feUL,0x9bdc06a7UL,0xc19bf174UL,
@@ -30,7 +102,32 @@ static const uint32_t K256[64] = {
     0x748f82eeUL,0x78a5636fUL,0x84c87814UL,0x8cc70208UL,0x90befffaUL,0xa4506cebUL,0xbef9a3f7UL,0xc67178f2UL
 };
 
-/* SHA-256 공통 처리 함수 */
+/**
+ * @brief SHA-256 계열 공통 처리 함수 (SHA-224, SHA-256)
+ *
+ * @details
+ *   SHA-224와 SHA-256의 공통 처리 로직을 수행한다.
+ *   초기 해시 값과 출력 길이만 다르게 설정하여 각 알고리즘을 구현한다.
+ *   SHA-256 표준(FIPS 180-4)을 따른다.
+ *
+ * @param[out] digest   계산된 해시 다이제스트를 저장할 버퍼
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  data_len 입력 데이터의 길이 (바이트 단위)
+ * @param[in]  iv       초기 해시 값 (8개의 32비트 워드)
+ * @param[in]  out_len  출력 다이제스트 길이 (바이트 단위, 28 또는 32)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_SHA_HASH_NULL_PTR: digest 또는 iv가 NULL
+ *   - ERR_SHA_HASH_INVALID_DATA: 잘못된 입력 데이터 또는 출력 길이
+ *   - ERR_SHA_HASH_FAIL: 메모리 할당 실패
+ *
+ * @remark
+ *   - 입력 데이터는 패딩되어 512비트(64바이트) 블록 단위로 처리된다.
+ *   - 보안을 위해 사용된 메모리는 작업 후 0으로 초기화된다.
+ *
+ * @see sha224_hash()
+ * @see sha256_hash()
+ */
 static ERR_MSG sha256_process(
     OUT uint8_t* digest,
     IN  const uint8_t* data,
@@ -90,7 +187,23 @@ static ERR_MSG sha256_process(
     return SUCCESS;
 }
 
-/* SHA-224 */
+/**
+ * @brief SHA-224 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-224 해시를 계산하여 28바이트 다이제스트를 생성한다.
+ *   SHA-224는 SHA-256과 동일한 알고리즘을 사용하지만, 다른 초기 해시 값과
+ *   출력 길이(28바이트)를 사용한다.
+ *
+ * @param[out] digest   계산된 SHA-224 다이제스트를 저장할 버퍼 (28바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  len      입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha256_hash()
+ * @see sha256_process()
+ */
 ERR_MSG sha224_hash(OUT uint8_t* digest, IN const uint8_t* data, IN size_t len) {
     static const uint32_t IV[8] = {
         0xc1059ed8UL,0x367cd507UL,0x3070dd17UL,0xf70e5939UL,
@@ -99,7 +212,22 @@ ERR_MSG sha224_hash(OUT uint8_t* digest, IN const uint8_t* data, IN size_t len) 
     return sha256_process(digest, data, len, IV, 28);
 }
 
-/* SHA-256 */
+/**
+ * @brief SHA-256 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-256 해시를 계산하여 32바이트 다이제스트를 생성한다.
+ *   SHA-256은 가장 널리 사용되는 SHA-2 알고리즘이다.
+ *
+ * @param[out] digest   계산된 SHA-256 다이제스트를 저장할 버퍼 (32바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  len      입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha224_hash()
+ * @see sha256_process()
+ */
 ERR_MSG sha256_hash(OUT uint8_t* digest, IN const uint8_t* data, IN size_t len) {
     static const uint32_t IV[8] = {
         0x6a09e667UL,0xbb67ae85UL,0x3c6ef372UL,0xa54ff53aUL,
@@ -112,16 +240,75 @@ ERR_MSG sha256_hash(OUT uint8_t* digest, IN const uint8_t* data, IN size_t len) 
  *  SHA-512 계열 (원본 그대로 유지)
  *=====================================================================*/
 
- // SHA-512 내부 함수들
+/**
+ * @brief 64비트 값을 오른쪽으로 순환 시프트하는 함수
+ *
+ * @param[in] x 시프트할 64비트 값
+ * @param[in] n 시프트할 비트 수
+ *
+ * @return uint64_t 시프트된 64비트 값
+ */
 static uint64_t rotr64(uint64_t x, int n) { return (x >> n) | (x << (64 - n)); }
+
+/**
+ * @brief SHA-512 Choice 함수 (ch)
+ *
+ * @param[in] x 첫 번째 64비트 값
+ * @param[in] y 두 번째 64비트 값
+ * @param[in] z 세 번째 64비트 값
+ *
+ * @return uint64_t (x & y) ^ (~x & z)
+ */
 static uint64_t ch(uint64_t x, uint64_t y, uint64_t z) { return (x & y) ^ (~x & z); }
+
+/**
+ * @brief SHA-512 Majority 함수 (maj)
+ *
+ * @param[in] x 첫 번째 64비트 값
+ * @param[in] y 두 번째 64비트 값
+ * @param[in] z 세 번째 64비트 값
+ *
+ * @return uint64_t (x & y) ^ (x & z) ^ (y & z)
+ */
 static uint64_t maj(uint64_t x, uint64_t y, uint64_t z) { return (x & y) ^ (x & z) ^ (y & z); }
+
+/**
+ * @brief SHA-512 Sigma0 함수 (σ0)
+ *
+ * @param[in] x 입력 64비트 값
+ *
+ * @return uint64_t ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39)
+ */
 static uint64_t sigma0(uint64_t x) { return rotr64(x, 28) ^ rotr64(x, 34) ^ rotr64(x, 39); }
+
+/**
+ * @brief SHA-512 Sigma1 함수 (σ1)
+ *
+ * @param[in] x 입력 64비트 값
+ *
+ * @return uint64_t ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41)
+ */
 static uint64_t sigma1(uint64_t x) { return rotr64(x, 14) ^ rotr64(x, 18) ^ rotr64(x, 41); }
+
+/**
+ * @brief SHA-512 Gamma0 함수 (γ0)
+ *
+ * @param[in] x 입력 64비트 값
+ *
+ * @return uint64_t ROTR(x, 1) ^ ROTR(x, 8) ^ (x >> 7)
+ */
 static uint64_t gamma0(uint64_t x) { return rotr64(x, 1) ^ rotr64(x, 8) ^ (x >> 7); }
+
+/**
+ * @brief SHA-512 Gamma1 함수 (γ1)
+ *
+ * @param[in] x 입력 64비트 값
+ *
+ * @return uint64_t ROTR(x, 19) ^ ROTR(x, 61) ^ (x >> 6)
+ */
 static uint64_t gamma1(uint64_t x) { return rotr64(x, 19) ^ rotr64(x, 61) ^ (x >> 6); }
 
-// SHA-512 상수 K
+/** @brief SHA-512 라운드 상수 K (80개) */
 static const uint64_t K[80] = {
     0x428a2f98d728ae22ULL,0x7137449123ef65cdULL,0xb5c0fbcfec4d3b2fULL,0xe9b5dba58189dbbcULL,
     0x3956c25bf348b538ULL,0x59f111f1b605d019ULL,0x923f82a4af194f9bULL,0xab1c5ed5da6d8118ULL,
@@ -145,6 +332,20 @@ static const uint64_t K[80] = {
     0x4cc5d4becb3e42b6ULL,0x597f299cfc657e2aULL,0x5fcb6fab3ad6faecULL,0x6c44198c4a475817ULL
 };
 
+/**
+ * @brief SHA-512 변환 함수 (단일 블록 처리)
+ *
+ * @details
+ *   SHA-512의 메인 변환 함수로, 1024비트(128바이트) 블록을 처리하여
+ *   상태(state)를 업데이트한다.
+ *
+ * @param[in,out] state SHA-512 상태 배열 (8개의 64비트 워드, 업데이트됨)
+ * @param[in]     block 처리할 128바이트 블록
+ *
+ * @remark
+ *   - 내부적으로 80라운드를 수행한다.
+ *   - 보안을 위해 사용된 메모리(w 배열)는 작업 후 0으로 초기화된다.
+ */
 static void sha512_transform(uint64_t state[8], const uint8_t* block) {
     uint64_t w[80];
 
@@ -198,7 +399,35 @@ static void sha512_transform(uint64_t state[8], const uint8_t* block) {
     memset(w, 0, sizeof(w));
 }
 
-// SHA-512 공통 처리 함수
+/**
+ * @brief SHA-512 계열 공통 처리 함수 (SHA-384, SHA-512, SHA-512/224, SHA-512/256)
+ *
+ * @details
+ *   SHA-512 계열 알고리즘의 공통 처리 로직을 수행한다.
+ *   초기 해시 값과 출력 길이만 다르게 설정하여 각 알고리즘을 구현한다.
+ *   SHA-512 표준(FIPS 180-4)을 따른다.
+ *
+ * @param[out] digest       계산된 해시 다이제스트를 저장할 버퍼
+ * @param[in]  data         해시를 계산할 입력 데이터
+ * @param[in]  data_len     입력 데이터의 길이 (바이트 단위)
+ * @param[in]  initial_hash 초기 해시 값 (8개의 64비트 워드)
+ * @param[in]  output_len   출력 다이제스트 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *   - ERR_SHA_HASH_NULL_PTR: digest 또는 initial_hash가 NULL
+ *   - ERR_SHA_HASH_INVALID_DATA: 잘못된 입력 데이터 또는 출력 길이
+ *   - ERR_SHA_HASH_FAIL: 메모리 할당 실패
+ *
+ * @remark
+ *   - 입력 데이터는 패딩되어 1024비트(128바이트) 블록 단위로 처리된다.
+ *   - 보안을 위해 사용된 메모리는 작업 후 0으로 초기화된다.
+ *
+ * @see sha384_hash()
+ * @see sha512_hash()
+ * @see sha512_224_hash()
+ * @see sha512_256_hash()
+ * @see sha512_transform()
+ */
 ERR_MSG sha512_process(
     OUT uint8_t* digest,
     IN  const uint8_t* data,
@@ -251,7 +480,23 @@ ERR_MSG sha512_process(
     return SUCCESS;
 }
 
-/* SHA-512 계열 파생 함수들 */
+/**
+ * @brief SHA-384 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-384 해시를 계산하여 48바이트 다이제스트를 생성한다.
+ *   SHA-384는 SHA-512와 동일한 알고리즘을 사용하지만, 다른 초기 해시 값과
+ *   출력 길이(48바이트)를 사용한다.
+ *
+ * @param[out] digest   계산된 SHA-384 다이제스트를 저장할 버퍼 (48바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  data_len 입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha512_hash()
+ * @see sha512_process()
+ */
 ERR_MSG sha384_hash(
     OUT uint8_t* digest /*48*/,
     IN  const uint8_t* data,
@@ -263,6 +508,24 @@ ERR_MSG sha384_hash(
     return sha512_process(digest, data, data_len, sha384_initial_hash, 48);
 }
 
+/**
+ * @brief SHA-512 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-512 해시를 계산하여 64바이트 다이제스트를 생성한다.
+ *   SHA-512는 SHA-2 계열 중 가장 긴 다이제스트를 제공한다.
+ *
+ * @param[out] digest   계산된 SHA-512 다이제스트를 저장할 버퍼 (64바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  data_len 입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha384_hash()
+ * @see sha512_224_hash()
+ * @see sha512_256_hash()
+ * @see sha512_process()
+ */
 ERR_MSG sha512_hash(
     OUT uint8_t* digest /*64*/,
     IN  const uint8_t* data,
@@ -274,6 +537,24 @@ ERR_MSG sha512_hash(
     return sha512_process(digest, data, data_len, sha512_initial_hash, 64);
 }
 
+/**
+ * @brief SHA-512/224 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-512/224 해시를 계산하여 28바이트 다이제스트를 생성한다.
+ *   SHA-512/224는 SHA-512와 동일한 알고리즘을 사용하지만, 다른 초기 해시 값과
+ *   출력 길이(28바이트)를 사용한다.
+ *
+ * @param[out] digest   계산된 SHA-512/224 다이제스트를 저장할 버퍼 (28바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  data_len 입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha512_hash()
+ * @see sha512_256_hash()
+ * @see sha512_process()
+ */
 ERR_MSG sha512_224_hash(
     OUT uint8_t* digest /*28*/,
     IN  const uint8_t* data,
@@ -285,6 +566,24 @@ ERR_MSG sha512_224_hash(
     return sha512_process(digest, data, data_len, sha512_224_initial_hash, 28);
 }
 
+/**
+ * @brief SHA-512/256 해시 함수
+ *
+ * @details
+ *   입력 데이터에 대해 SHA-512/256 해시를 계산하여 32바이트 다이제스트를 생성한다.
+ *   SHA-512/256는 SHA-512와 동일한 알고리즘을 사용하지만, 다른 초기 해시 값과
+ *   출력 길이(32바이트)를 사용한다.
+ *
+ * @param[out] digest   계산된 SHA-512/256 다이제스트를 저장할 버퍼 (32바이트)
+ * @param[in]  data     해시를 계산할 입력 데이터
+ * @param[in]  data_len 입력 데이터의 길이 (바이트 단위)
+ *
+ * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
+ *
+ * @see sha512_hash()
+ * @see sha512_224_hash()
+ * @see sha512_process()
+ */
 ERR_MSG sha512_256_hash(
     OUT uint8_t* digest /*32*/,
     IN  const uint8_t* data,

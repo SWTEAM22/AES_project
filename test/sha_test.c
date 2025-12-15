@@ -11,6 +11,19 @@
 #include "../test/print.h"
 #include "../sha/header/sha.h"
 
+/**
+ * @file sha_test.c
+ * @brief SHA-2 해시 알고리즘 테스트 프로그램
+ *
+ * @details
+ *   이 파일은 SHA-2 계열 해시 알고리즘의 정확성을 검증하는 테스트 프로그램이다.
+ *   NIST 표준 테스트 벡터를 사용하여 SHA-224, SHA-256, SHA-384, SHA-512의
+ *   해시 기능을 테스트한다.
+ *
+ * @author Secure Software Team
+ * @date 2024
+ */
+
 #define MAX_MESSAGE_LEN 1000000
 #define READ_CHUNK_SIZE 2048
 
@@ -30,6 +43,12 @@ static ShaTypeInfo g_sha_info[] = {
     { "SHA-512", SHA512_DIGEST_SIZE, SHA512, 0, 0, 0 },
 };
 
+/**
+ * @brief SHA 테스트 통계를 초기화하는 함수
+ *
+ * @details
+ *   모든 SHA 알고리즘 타입의 테스트 통계(총 테스트 수, 통과 수, 실패 수)를 0으로 초기화한다.
+ */
 static void reset_sha_stats(void) {
     for (size_t i = 0; i < sizeof(g_sha_info) / sizeof(g_sha_info[0]); i++) {
         g_sha_info[i].total = 0;
@@ -38,6 +57,13 @@ static void reset_sha_stats(void) {
     }
 }
 
+/**
+ * @brief 16진수 문자를 숫자로 변환하는 함수
+ *
+ * @param[in] c 변환할 16진수 문자 ('0'-'9', 'a'-'f', 'A'-'F')
+ *
+ * @return int 변환된 숫자 (0-15), 유효하지 않은 문자면 -1
+ */
 static int hex_char_to_int(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -45,6 +71,20 @@ static int hex_char_to_int(char c) {
     return -1;
 }
 
+/**
+ * @brief 16진수 문자열에서 바이트를 수집하는 함수
+ *
+ * @details
+ *   16진수 문자열을 파싱하여 바이트 배열로 변환한다.
+ *   공백은 무시되며, 홀수 자릿수는 허용하지 않는다.
+ *
+ * @param[in]  src      파싱할 16진수 문자열
+ * @param[out] dest     변환된 바이트를 저장할 배열
+ * @param[in]  max_len  dest 배열의 최대 길이
+ * @param[out] out_len  변환된 바이트 수
+ *
+ * @return bool 성공 시 true, 실패 시 false
+ */
 static bool collect_hex_bytes(const char* src, uint8_t* dest, size_t max_len, size_t* out_len) {
     size_t produced = 0;
     int high = -1;
@@ -70,6 +110,13 @@ static bool collect_hex_bytes(const char* src, uint8_t* dest, size_t max_len, si
     return true;
 }
 
+/**
+ * @brief 문자열의 앞뒤 공백을 제거하는 함수
+ *
+ * @param[in,out] str 공백을 제거할 문자열 (수정됨)
+ *
+ * @return char* 수정된 문자열 포인터 (입력과 동일)
+ */
 static char* trim(char* str) {
     if (str == NULL) return NULL;
     while (*str && isspace((unsigned char)*str)) str++;
@@ -82,10 +129,31 @@ static char* trim(char* str) {
     return str;
 }
 
+/**
+ * @brief 라인이 공백이거나 주석인지 확인하는 함수
+ *
+ * @param[in] line 확인할 라인 문자열
+ *
+ * @return bool 공백이거나 주석이면 true, 그렇지 않으면 false
+ */
 static bool is_blank_or_comment(const char* line) {
     return line == NULL || *line == '\0' || *line == '#';
 }
 
+/**
+ * @brief 파일에서 전체 라인을 읽는 함수
+ *
+ * @details
+ *   파일에서 한 줄을 읽되, 길이 제한 없이 전체를 읽는다.
+ *   동적 메모리 할당을 사용한다.
+ *
+ * @param[in] file 읽을 파일 포인터
+ *
+ * @return char* 읽은 라인 문자열 (메모리 해제 필요), 실패 시 NULL
+ *
+ * @remark
+ *   - 호출자는 반환된 포인터를 free()로 해제해야 한다.
+ */
 static char* read_full_line(FILE* file) {
     char buffer[READ_CHUNK_SIZE];
     char* result = NULL;
@@ -151,6 +219,19 @@ static void dump_bytes(const char* label, const uint8_t* buf, size_t len) {
     printf("\n");
 }
 
+/**
+ * @brief SHA-2 테스트 벡터 파일을 파싱하고 테스트하는 함수
+ *
+ * @details
+ *   NIST 표준 테스트 벡터 파일을 읽어서 SHA-2 해시 알고리즘을 테스트한다.
+ *   파일에서 섹션 헤더를 감지하여 SHA-224, SHA-256, SHA-384, SHA-512를 자동으로 구분한다.
+ *
+ * @param[in]  filename    테스트 벡터 파일 경로
+ * @param[out] file_total  파일의 총 테스트 케이스 수
+ * @param[out] file_pass   통과한 테스트 케이스 수
+ *
+ * @return int 성공 시 1, 실패 시 0
+ */
 static int test_sha2_file(const char* filename, int* file_total, int* file_pass) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -328,6 +409,16 @@ static int test_sha2_file(const char* filename, int* file_total, int* file_pass)
 }
 
 #ifdef SHA_TEST_MAIN
+/**
+ * @brief SHA-2 테스트 프로그램의 메인 함수
+ *
+ * @details
+ *   SHA-2 테스트 벡터 파일들을 자동으로 찾아서 테스트를 수행한다.
+ *   테스트 디렉토리에서 SHA* 테스트 벡터 파일들을 검색하여
+ *   SHA-224, SHA-256, SHA-384, SHA-512 해시 알고리즘을 테스트한다.
+ *
+ * @return int 프로그램 종료 코드 (0: 성공, 1: 실패)
+ */
 int main(void) {
     printf("========================================\n");
     printf("SHA-2 테스트 벡터 파일 자동 테스트 시작\n");
