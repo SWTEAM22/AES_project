@@ -91,5 +91,10 @@
     <Text Include="test\tv_aes-ctr128.txt" />
     <Text Include="test\tv_aes-ctr192.txt" />
     <Text Include="test\tv_aes-ctr256.txt" />
+    <Text Include="test\gf_mult_vectors.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
