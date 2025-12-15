@@ -90,13 +90,14 @@ static void read_line(char* buf, size_t size) {
 
 int main(void) {
     char mode[8];
-    char in_path[260];
-    char out_path[260];
+    char in_path[512];   // 절대 경로/상대 경로 모두 지원 (더 긴 경로 허용)
+    char out_path[512];
     char key_hex[129];   // 최대 64 hex + 널
     char iv_hex[65];     // 32 hex + 널
-    char tag_path[260];
+    char tag_path[512];
 
     printf("=== File Encrypt/Decrypt with AES-CTR + SHA-256 Tag ===\n");
+    printf("Note: You can use absolute paths (e.g., C:\\Users\\...\\file.txt) or relative paths (e.g., data\\file.txt)\n\n");
 
     // 모드 입력 및 검증
     while (1) {
@@ -106,17 +107,25 @@ int main(void) {
         printf("ERROR: invalid mode. Please enter \"enc\" or \"dec\".\n");
     }
 
-    // 입력 파일 경로
+    // 입력 파일 경로 (절대 경로 또는 상대 경로)
     while (1) {
-        printf("Input file path : ");
+        if (strcmp(mode, "enc") == 0) {
+            printf("Input file path (plaintext file, e.g., C:\\data\\plain.txt or data\\plain.txt): ");
+        } else {
+            printf("Input file path (ciphertext file, e.g., C:\\data\\cipher.bin or data\\cipher.bin): ");
+        }
         read_line(in_path, sizeof(in_path));
         if (in_path[0] != '\0') break;
         printf("ERROR: input file path cannot be empty.\n");
     }
 
-    // 출력 파일 경로
+    // 출력 파일 경로 (절대 경로 또는 상대 경로)
     while (1) {
-        printf("Output file path: ");
+        if (strcmp(mode, "enc") == 0) {
+            printf("Output file path (ciphertext file, e.g., C:\\data\\cipher.bin or data\\cipher.bin): ");
+        } else {
+            printf("Output file path (decrypted file, e.g., C:\\data\\decrypted.txt or data\\decrypted.txt): ");
+        }
         read_line(out_path, sizeof(out_path));
         if (out_path[0] != '\0') break;
         printf("ERROR: output file path cannot be empty.\n");
@@ -158,9 +167,9 @@ int main(void) {
         break;
     }
 
-    // 태그 파일 경로
+    // 태그 파일 경로 (절대 경로 또는 상대 경로)
     while (1) {
-        printf("Tag file path   : ");
+        printf("Tag file path (e.g., C:\\data\\tag.bin or data\\tag.bin): ");
         read_line(tag_path, sizeof(tag_path));
         if (tag_path[0] != '\0') break;
         printf("ERROR: tag file path cannot be empty.\n");
