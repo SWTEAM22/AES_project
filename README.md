@@ -67,20 +67,28 @@ secure sw/
 ### Visual Studio (Windows)
 
 1. **Visual Studio 2022 이상**에서 `secure sw.sln` 열기
-2. 빌드 모드 선택:
-   - **테스트 실행**: 기본 설정 (테스트용 `main` 함수 사용)
-   - **파일 암복호화 프로그램 실행**: 
-     - 프로젝트 속성 → C/C++ → Preprocessor → Preprocessor Definitions
-     - `FILE_CRYPTO` 추가
-     - `test/aes_test.c`, `test/sha_test.c`를 빌드에서 제외 (또는 해당 파일의 `main`을 `#ifndef FILE_CRYPTO`로 감싸기)
+2. **실행 모드 선택**: `include/foundation.h` 파일에서 `TESTCASE` 값을 설정
+   ```c
+   #define TESTCASE 0  // 파일 암복호화 프로그램 (기본값)
+   #define TESTCASE 1  // AES 테스트
+   #define TESTCASE 2  // SHA-2 테스트
+   ```
 3. 빌드: `Ctrl+Shift+B` 또는 Build → Build Solution
 4. 실행 파일 위치: `x64/Debug/secure sw.exe` 또는 `x64/Release/secure sw.exe`
+
+### TESTCASE 설정 방법
+
+`include/foundation.h` 파일의 32번째 줄을 수정:
+
+- **`TESTCASE 0`** (기본값): 파일 암복호화 프로그램 실행 (`FILE_CRYPTO` 정의)
+- **`TESTCASE 1`**: AES 테스트 실행 (`AES_TEST_MAIN` 정의)
+- **`TESTCASE 2`**: SHA-2 테스트 실행 (`SHA_TEST_MAIN` 정의)
 
 ## 사용법
 
 ### 파일 암복호화 프로그램
 
-프로그램을 실행하면 대화형으로 입력을 받습니다:
+`TESTCASE 0`으로 설정한 후 프로그램을 실행하면 대화형으로 입력을 받습니다:
 
 #### 암호화 (Encrypt)
 
@@ -196,18 +204,27 @@ err = decrypt_file_with_tag_ex(
 
 ## 테스트
 
-### AES 테스트
+### 테스트 실행 방법
 
-```bash
-# Visual Studio에서 빌드 후 실행
-# 또는 명령줄에서
-secure sw.exe
-# (AES 테스트가 기본 main으로 설정된 경우)
-```
+`include/foundation.h` 파일에서 `TESTCASE` 값을 변경하여 원하는 테스트를 실행할 수 있습니다:
 
-### SHA-2 테스트
+#### AES 테스트
 
-프로젝트 설정에서 `AES_TEST_MAIN`을 정의하지 않으면 SHA-2 테스트가 실행됩니다.
+1. `include/foundation.h`에서 `TESTCASE`를 `1`로 설정:
+   ```c
+   #define TESTCASE 1
+   ```
+2. 프로젝트 빌드 및 실행
+3. AES 테스트 벡터 파일을 읽어 자동으로 테스트 수행
+
+#### SHA-2 테스트
+
+1. `include/foundation.h`에서 `TESTCASE`를 `2`로 설정:
+   ```c
+   #define TESTCASE 2
+   ```
+2. 프로젝트 빌드 및 실행
+3. SHA-2 테스트 벡터 파일을 읽어 자동으로 테스트 수행
 
 테스트 벡터 파일 위치: `test/tv_SHA2/`
 
