@@ -31,35 +31,11 @@
  *   - rounds: 라운드 수 (AES-128: 10, AES-192: 12, AES-256: 14)
  */
 typedef struct aes_key {
-	uint32_t rd_key[4 * (MAX_ROUNDS + 1)];  /**< 라운드 키 배열 */
-	size_t rounds;                          /**< 라운드 수 */
 }AES_KEY;
 
-/**
- * @brief GF(2^8) 유한체에서 x 곱셈 연산 (xtimes)
- *
- * @param[in,out] dat 곱셈 연산을 수행할 바이트 포인터
- *
- * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
- *
- * @see gf_mult()
- * @see mix_columns()
- */
 ERR_MSG xtimes(uint8_t* dat);
+ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2);		// GF(2^8)에서 곱셈 연산
 
-/**
- * @brief GF(2^8) 유한체에서 두 바이트의 곱셈 연산
- *
- * @param[out] dst  곱셈 결과를 저장할 바이트 포인터
- * @param[in]  src1 곱셈할 첫 번째 바이트
- * @param[in]  src2 곱셈할 두 번째 바이트
- *
- * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
- *
- * @see xtimes()
- * @see mix_columns()
- */
-ERR_MSG gf_mult(OUT uint8_t* dst, IN const uint8_t* src1, IN const uint8_t* src2);
 
 /**
  * @brief 32비트 워드에 S-box를 적용하는 함수
@@ -103,15 +79,6 @@ ERR_MSG key_expansion_inline(OUT AES_KEY* key, IN const uint8_t* master_key, IN 
 
 
 
-/**
- * @brief AES SubBytes 변환 함수
- *
- * @param[in,out] state AES state 행렬 (4x4 바이트 배열)
- *
- * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
- *
- * @see aes_encrypt()
- */
 ERR_MSG sub_bytes(uint8_t state[4][4]);
 
 /**
@@ -167,15 +134,6 @@ ERR_MSG aes_encrypt(
 	IN const AES_KEY* key,
 	IN const uint8_t* pt);
 
-/**
- * @brief AES InvSubBytes 변환 함수
- *
- * @param[in,out] state AES state 행렬 (4x4 바이트 배열)
- *
- * @return ERR_MSG 성공 시 SUCCESS, 실패 시 에러 코드 반환
- *
- * @see aes_decrypt()
- */
 ERR_MSG inv_sub_bytes(uint8_t state[4][4]);
 
 /**
@@ -199,6 +157,7 @@ ERR_MSG inv_shift_rows(uint8_t state[4][4]);
  * @see aes_decrypt()
  */
 ERR_MSG inv_mix_columns(uint8_t state[4][4]);
+// add_round_key 함수는 암호화와 동일
 
 /**
  * @brief AES 블록 복호화 함수

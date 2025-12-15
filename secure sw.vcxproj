@@ -142,18 +142,24 @@
     <ClCompile Include="api\file_crypto_api.c" />
     <ClCompile Include="api\sha_api.c" />
     <ClCompile Include="include\error.c" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="sha\sorce\sha.c" />
     <ClCompile Include="test\print.c" />
     <ClCompile Include="test\sha_test.c" />
     <ClCompile Include="test\aes_test.c" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="test\gf_mult_vectors.txt" />
     <Text Include="test\tv_aes-ctr128.txt" />
     <Text Include="test\tv_aes-ctr192.txt" />
     <Text Include="test\tv_aes-ctr256.txt" />
     <Text Include="test\tv_aes128.txt" />
     <Text Include="test\tv_aes192.txt" />
     <Text Include="test\tv_aes256.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
