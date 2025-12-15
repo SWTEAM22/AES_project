@@ -1,0 +1,10 @@
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\aes\sorce\aes.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\aes.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\aes\sorce\aes_ctr.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\aes_ctr.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\api\aes_api.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\aes_api.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\api\file_crypto_api.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\file_crypto_api.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\api\sha_api.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\sha_api.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\include\error.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\error.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\sha\sorce\sha.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\sha.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\test\print.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\print.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\test\sha_test.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\sha_test.obj
+C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\test\aes_test.c;C:\Users\bryan\Desktop\00\01_school\01.2_2\02_secure sw\secure sw\secure sw\x64\Release\aes_test.obj

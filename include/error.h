@@ -1,0 +1,99 @@
+﻿#ifndef ERROR_H
+#define ERROR_H
+
+#include <stdint.h>
+
+/*----------------------------------- 오류 출력 함수-------------------------------------------*/
+
+#define SUCCESS 0
+#define FAIL 1
+
+#define ERR_MSG uint16_t
+#define ERR_FUNC uint16_t
+
+#define FOLDER_MASK             0xF000
+#define FUNC_MASK               0x0FF0
+#define ERR_MASK                0x000F
+
+#define FOLDER_AES				0x1000
+#define FOLDER_API              0x2000
+#define FOLDER_INCLUDE			0x3000
+#define FOLDER_SHA				0x4000
+#define FOLDER_TEST				0x5000
+
+#define FUNC_INTERNAL			0x0010
+#define FUNC_KEY_SCHEDULE		0x0020
+#define FUNC_ENCRYPT			0x0030
+#define FUNC_DECRYPT			0x0040
+#define FUNC_HASH				0x0050
+#define FUNC_CTR_CRYPTO			0x0060
+#define FUNC_SUB_BYTES			0x0070
+#define FUNC_SHIFT_ROWS			0x0080
+#define FUNC_MIX_COLUMNS		0x0090
+#define FUNC_ADD_ROUND_KEY		0x00A0
+#define FUNC_INV_SUB_BYTES		0x00B0
+#define FUNC_INV_SHIFT_ROWS		0x00C0
+#define FUNC_INV_MIX_COLUMNS	0x00D0
+#define FUNC_XTIMES				0x00E0
+#define FUNC_GF_MULT			0x00F0
+#define FUNC_SUB_WORD			0x0100
+#define FUNC_ROT_WORD			0x0110
+#define FUNC_INCREMENT_COUNTER	0x0120
+#define FUNC_SHA224_HASH		0x0130
+#define FUNC_SHA256_HASH		0x0140
+#define FUNC_SHA384_HASH		0x0150
+#define FUNC_SHA512_HASH		0x0160
+#define FUNC_SHA512_224_HASH	0x0170
+#define FUNC_SHA512_256_HASH	0x0180
+#define FUNC_SHA2_HASH			0x0190
+#define FUNC_ENCRYPT_FILE		0x01A0
+#define FUNC_DECRYPT_FILE		0x01B0
+
+// 에러 타입 정의 (하위 4비트)
+// 에러 타입 정의 (하위 4비트)
+#define ERR_TYPE_NULL_POINTER	0x0001  // NULL 포인터 오류
+#define ERR_TYPE_INVALID_ARG	0x0002  // 잘못된 인자 오류
+#define ERR_TYPE_INVALID_KEY	0x0003  // 잘못된 키 오류
+#define ERR_TYPE_INVALID_DATA	0x0004  // 잘못된 데이터 오류
+#define ERR_TYPE_INTERNAL		0x0005  // 내부 오류
+#define ERR_TYPE_MEMORY_ALLOC	0x0006  // 메모리 할당 실패
+#define ERR_TYPE_FILE_IO		0x0007  // 파일 입출력 오류
+#define ERR_TYPE_INVALID_LENGTH	0x0008  // 잘못된 길이 오류
+#define ERR_TYPE_CRYPTO_FAIL	0x0009  // 암호화 작업 실패
+#define ERR_TYPE_HASH_FAIL		0x000A  // 해시 작업 실패
+
+// 매크로 함수들
+#define MAKE_ERROR(folder, func, err_type) ((folder) | (func) | (err_type))
+#define GET_FOLDER(error_code) ((error_code) & FOLDER_MASK)
+#define GET_FUNCTION(error_code) ((error_code) & FUNC_MASK)
+#define GET_ERROR_TYPE(error_code) ((error_code) & ERR_MASK)
+
+// 특정 에러 코드들
+#define ERR_AES_KEY_SCHEDULE_NULL_PTR		MAKE_ERROR(FOLDER_AES, FUNC_KEY_SCHEDULE, ERR_TYPE_NULL_POINTER)
+#define ERR_AES_KEY_SCHEDULE_INVALID_KEY	MAKE_ERROR(FOLDER_AES, FUNC_KEY_SCHEDULE, ERR_TYPE_INVALID_KEY)
+#define ERR_AES_ENCRYPT_NULL_PTR			MAKE_ERROR(FOLDER_AES, FUNC_ENCRYPT, ERR_TYPE_NULL_POINTER)
+#define ERR_AES_ENCRYPT_INVALID_DATA		MAKE_ERROR(FOLDER_AES, FUNC_ENCRYPT, ERR_TYPE_INVALID_DATA)
+#define ERR_AES_DECRYPT_NULL_PTR			MAKE_ERROR(FOLDER_AES, FUNC_DECRYPT, ERR_TYPE_NULL_POINTER)
+#define ERR_AES_DECRYPT_INVALID_DATA		MAKE_ERROR(FOLDER_AES, FUNC_DECRYPT, ERR_TYPE_INVALID_DATA)
+#define ERR_AES_CTR_INVALID_ARG				MAKE_ERROR(FOLDER_AES, FUNC_CTR_CRYPTO, ERR_TYPE_INVALID_ARG)
+#define ERR_AES_CTR_NULL_PTR				MAKE_ERROR(FOLDER_AES, FUNC_CTR_CRYPTO, ERR_TYPE_NULL_POINTER)
+#define ERR_AES_CTR_INVALID_LENGTH			MAKE_ERROR(FOLDER_AES, FUNC_CTR_CRYPTO, ERR_TYPE_INVALID_LENGTH)
+
+#define ERR_SHA_HASH_NULL_PTR				MAKE_ERROR(FOLDER_SHA, FUNC_HASH, ERR_TYPE_NULL_POINTER)
+#define ERR_SHA_HASH_INVALID_DATA			MAKE_ERROR(FOLDER_SHA, FUNC_HASH, ERR_TYPE_INVALID_DATA)
+#define ERR_SHA_HASH_FAIL					MAKE_ERROR(FOLDER_SHA, FUNC_HASH, ERR_TYPE_HASH_FAIL)
+
+#define ERR_API_NULL_PTR					MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_NULL_POINTER)
+#define ERR_API_INVALID_ARG					MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_INVALID_ARG)
+#define ERR_API_FILE_IO						MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_FILE_IO)
+#define ERR_API_MEMORY_ALLOC				MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_MEMORY_ALLOC)
+#define ERR_API_INVALID_DATA				MAKE_ERROR(FOLDER_API, FUNC_INTERNAL, ERR_TYPE_INVALID_DATA)
+
+// 에러 메시지 출력 함수들
+const char* error_to_string(ERR_MSG code);
+const char* get_folder_name(uint16_t folder_code);
+const char* get_function_name(uint16_t func_code);
+const char* get_error_type_message(uint16_t err_type);
+void print_error_details(ERR_MSG code);
+
+#endif // !ERROR_H
